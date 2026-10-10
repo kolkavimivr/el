@@ -23,11 +23,12 @@ const app = express();
 app.use(express.json({ limit: '10mb' }));
 const ORIGIN = process.env.ALLOWED_ORIGIN || '*';
 app.use((req, res, next) => {
-  res.set({ 'Access-Control-Allow-Origin': ORIGIN, 'Access-Control-Allow-Headers': 'x-pass,content-type', 'Access-Control-Allow-Methods': 'GET,PUT,OPTIONS' });
+  res.set({ 'Access-Control-Allow-Origin': ORIGIN, 'Access-Control-Allow-Headers': req.get('Access-Control-Request-Headers') || 'x-pass,content-type', 'Access-Control-Allow-Methods': 'GET,PUT,POST,OPTIONS', 'Access-Control-Max-Age': '86400', 'Access-Control-Allow-Private-Network': 'true' });
   if (req.method === 'OPTIONS') return res.sendStatus(204);
   next();
 });
 app.get('/healthz', (_, res) => res.send('ok'));
+app.get('/api/ping', (_, res) => res.json({ ok: true, time: new Date().toISOString() }));
 
 const auth = (req, res, next) => req.get('x-pass') === ADMIN_PASSWORD ? next() : res.status(401).json({ error: 'auth' });
 app.get('/api/state', auth, async (_, res) => res.json(await getState()));
@@ -84,5 +85,6 @@ ivr.get('/', async call => {
 });
 
 app.use('/ivr/' + IVR_SECRET, ivr);
+app.use(express.static('public'));
 app.get('/', (_, res) => res.send('tornuyot server is running'));
 app.listen(PORT, () => console.log('listening on', PORT));
