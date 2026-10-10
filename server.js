@@ -23,11 +23,11 @@ let q = Promise.resolve();
 const locked = fn => { const r = q.then(fn); q = r.catch(() => {}); return r; };
 const dayIL = () => ({ Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: -1 })[new Intl.DateTimeFormat('en-US', { weekday: 'short', timeZone: 'Asia/Jerusalem' }).format(new Date())];
 const tsIL = () => new Date().toLocaleString('he-IL', { timeZone: 'Asia/Jerusalem' });
-const record = (id, msg, week, d, s) => locked(async () => {
+const record = (id, msg, k, p, s) => locked(async () => {
   for (let i = 0; i < 3; i++) {
     try {
       const cur = await ghRead('reports.json'), R = cur?.data || { rep: {}, log: [] };
-      if (s) { const k = id + '|' + week; R.rep[k] = R.rep[k] || []; R.rep[k][d] = { s }; }
+      if (s) { R.rep[k] = R.rep[k] || []; R.rep[k][p] = { s }; }
       R.log.push({ t: tsIL(), id, msg }); await ghWrite('reports.json', R, cur?.sha); return;
     } catch (e) { if (i === 2) throw e; }
   }
@@ -47,14 +47,15 @@ ivr.get('/', async call => {
     let id = await call.read(say('אנא הקישי את מספר תעודת הזהות שלך, ובסיומו סולמית'), 'tap',
       { val_name: 'ID', min_digits: 5, max_digits: 9, sec_wait: 8, block_asterisk_key: true, amount_attempts: 3 });
     id = String(id).padStart(9, '0');
-    const st = await roster(), row = st?.rows?.find(x => x.id === id), d = dayIL();
-    if (!row || !row.week || row.week != st.curWeek || d < 0) {
+    const st = await roster(), row = st?.rows?.find(x => x.id === id), d = dayIL(), cw = +st?.curWeek;
+    const from = row ? (row.from || row.week) : 0, to = row ? (row.to || row.week) : 0;
+    if (!row || !row.week || cw < from || cw > to || d < 0) {
       if (st?.students?.[id]) await record(id, 'דיווח טלפוני נדחה - לא משובצת בתקופה זו');
       return bye('אינך משובצת לתורנות בתקופה זו');
     }
     const key = await call.read(say('הקישי 1 אם ביצעת את התפקיד, 2 אם לא ביצעת, 3 ליום חופשי'), 'tap',
       { val_name: 'KEY', min_digits: 1, max_digits: 1, sec_wait: 8, digits_allowed: ['1', '2', '3'], amount_attempts: 3 });
-    await record(id, 'דיווח תלמידה (טלפון) ליום ' + 'אבגדהו'[d] + ': ' + LABEL[KEYS[key]], row.week, d, KEYS[key]);
+    await record(id, 'דיווח תלמידה (טלפון) ליום ' + 'אבגדהו'[d] + ': ' + LABEL[KEYS[key]], id + '|' + from, (cw - from) * 6 + d, KEYS[key]);
     return bye('הדיווח נקלט, תודה');
   } catch (e) { console.error(e); return bye('אירעה שגיאה, נסי שוב מאוחר יותר'); }
 });
