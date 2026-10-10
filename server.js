@@ -53,7 +53,7 @@ ivr.get('/', async call => {
       if (st?.students?.[id]) await record(id, 'דיווח טלפוני נדחה - לא משובצת בתקופה זו');
       return bye('אינך משובצת לתורנות בתקופה זו');
     }
-    const key = await call.read(say('הקישי 1 אם ביצעת את התפקיד, 2 אם לא ביצעת, 3 ליום חופשי'), 'tap',
+    const key = await call.read(say('הקישי אחד אם ביצעת את התפקיד, שתיים אם לא ביצעת, שלוש ליום חופשי'), 'tap',
       { val_name: 'KEY', min_digits: 1, max_digits: 1, sec_wait: 8, digits_allowed: ['1', '2', '3'], amount_attempts: 3 });
     await record(id, 'דיווח תלמידה (טלפון) ליום ' + 'אבגדהו'[d] + ': ' + LABEL[KEYS[key]], id + '|' + from, (cw - from) * 6 + d, KEYS[key]);
     return bye('הדיווח נקלט, תודה');
