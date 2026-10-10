@@ -1,10 +1,3 @@
-# מערכת תורנויות
-
-משתני סביבה ברנדר:
-- DATABASE_URL - כתובת ה-Postgres (Internal Database URL)
-- ADMIN_PASSWORD - סיסמת כניסה לדף הניהול
-- IVR_SECRET - מחרוזת סודית לכתובת השלוחה
-- ALLOWED_ORIGIN - (אופציונלי) כתובת האתר שבו יושב דף הניהול
-
-כתובת השלוחה בימות המשיח (שלוחת API): https://<שם-השירות>.onrender.com/ivr/<IVR_SECRET>
-בנייה: npm install | הפעלה: npm start
+# שרת שלוחת דיווח - תורנויות
+משתני סביבה: GITHUB_TOKEN (גישת Contents קריאה+כתיבה לריפו הנתונים), DATA_REPO (למשל kolkavimivr/el-data), IVR_SECRET.
+כתובת שלוחת API בימות: https://<השירות>.onrender.com/ivr/<IVR_SECRET>
