@@ -7,289 +7,352 @@
 <title>ניהול תורנויות</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
-body{font:14px Arial,sans-serif;margin:0;background:#f4f6f8;color:#222}
-header{background:#1e3a5f;color:#fff;padding:12px 18px}
-header h1{margin:0;font-size:20px}
-.box{background:#fff;margin:10px 14px;padding:10px 14px;border-radius:8px;box-shadow:0 1px 3px #0002}
-.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
-input,select,button{font:inherit;padding:5px 8px;border:1px solid #bbb;border-radius:5px}
-button{background:#1e3a5f;color:#fff;cursor:pointer;border:0}
-button.b2{background:#2196f3}button.g{background:#2e7d32}
-.tw{overflow-x:auto}
-table{border-collapse:collapse;width:100%;background:#fff}
-th{background:#e8edf3;position:sticky;top:0}
-th,td{padding:6px 8px;border-bottom:1px solid #e3e3e3;text-align:right;white-space:nowrap}
-.idb{background:#e8edf3;border-radius:4px;padding:2px 6px;font-family:monospace}
-.ph{direction:ltr;text-align:right}
-.wk{background:#fff3cd;border-radius:10px;padding:2px 8px}
-.mut{color:#2e7d32;font-weight:bold}
-.st-v{background:#c8f0d0}.st-r{background:#d4edda}.st-c{background:#ffe0b2}.st-p{background:#eee}
-.pb{height:7px;background:#ddd;border-radius:4px;margin:3px 0;width:130px}
-.pb i{display:block;height:100%;background:#2e7d32;border-radius:4px}
-.d{display:inline-block;width:22px;height:22px;line-height:22px;border-radius:50%;text-align:center;margin-left:3px;cursor:pointer;font-size:12px;background:#ddd}
-.d.done{background:#2e7d32;color:#fff}.d.free{background:#2196f3;color:#fff}.d.missed{outline:2px solid #d32f2f;outline-offset:-2px}.d.today{box-shadow:0 0 0 2px #1e3a5f}
-#md{display:none;position:fixed;inset:0;background:#0007;align-items:center;justify-content:center}
-#md>div{background:#fff;padding:16px;border-radius:8px;max-width:520px;width:90%;max-height:70vh;overflow:auto}
-small{color:#666}
-
-body{font-family:'Segoe UI',Arial,sans-serif;background:#f1f4f9}
-header{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;background:linear-gradient(135deg,#1e3a5f,#2d5a94);padding:14px 22px}
-.hb{display:flex;gap:8px;flex-wrap:wrap}
-.btn{display:inline-flex;align-items:center;gap:6px;padding:9px 18px;border-radius:10px;font-weight:600;border:0;cursor:pointer;transition:.15s;box-shadow:0 2px 6px #0002}
-.btn:hover{transform:translateY(-1px);filter:brightness(1.08)}
-.pri{background:#2563eb;color:#fff}.soft{background:#fff;color:#1e3a5f}.grn{background:#16a34a;color:#fff}.dng{background:#fee2e2;color:#b91c1c}
-.box{border-radius:14px;border:1px solid #e3e8ef;box-shadow:none}
-input,select{border:1px solid #d3dbe6;border-radius:10px;padding:9px 12px;background:#fff}
-input:focus,select:focus{outline:2px solid #93c5fd}
-.tw{padding:0;overflow:auto;max-height:75vh}
-table{border-collapse:separate;border-spacing:0}
-th{background:#f8fafc;color:#475569;padding:12px 10px}
+body{font-family:'Segoe UI',Arial,sans-serif;margin:0;background:#f1f4f9;color:#1f2937}
+header{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;background:linear-gradient(135deg,#1e3a5f,#2d5a94);color:#fff;padding:12px 18px}
+header h1{margin:0;font-size:19px}
+.hb{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:10px;font-weight:600;border:0;cursor:pointer;box-shadow:0 2px 6px #0002;font:inherit}
+.btn:hover{filter:brightness(1.07)}
+.pri{background:#2563eb;color:#fff}.soft{background:#fff;color:#1e3a5f}.grn{background:#16a34a;color:#fff}.dng{background:#fee2e2;color:#b91c1c}.vio{background:#7c3aed;color:#fff}
+.box{background:#fff;border:1px solid #e3e8ef;border-radius:14px;margin:10px 14px;padding:10px 14px;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+input,select{font:inherit;border:1px solid #d3dbe6;border-radius:10px;padding:7px 10px;background:#fff}
+.pill{display:inline-block;padding:4px 11px;border-radius:20px;font-weight:600;font-size:13px}
+#conn{background:#fff;color:#1e3a5f}
+.tw{background:#fff;margin:10px 14px;border-radius:14px;border:1px solid #e3e8ef;overflow:auto;max-height:74vh}
+table{border-collapse:separate;border-spacing:0;width:100%}
+th{background:#f8fafc;color:#475569;position:sticky;top:0;padding:10px 8px;z-index:1}
+th,td{border-bottom:1px solid #eef2f6;padding:6px 8px;text-align:right;vertical-align:middle}
 tr:hover td{background:#f8fbff}
-.pill{display:inline-block;padding:5px 12px;border-radius:20px;font-weight:600;font-size:13px;border:1px solid #0001}
-.wk{background:#e0f2fe;color:#0369a1;border:1px solid #7dd3fc;border-radius:6px;font-weight:600}
-button.b2{background:#0f6cbd;border-radius:8px;padding:6px 12px;font-weight:600}
-#md,#sm,#pm{display:none;position:fixed;inset:0;background:#0007;align-items:center;justify-content:center;z-index:9}
-.card{background:#f8fafc;border-radius:16px;width:min(640px,94vw);max-height:88vh;overflow:auto;padding:18px;box-shadow:0 10px 40px #0004}
-.mh{display:flex;justify-content:space-between;align-items:center}.mh h2{margin:0}
-.x{background:#e2e8f0;color:#334155;border-radius:50%;width:34px;height:34px;padding:0}
-.card section{background:#fff;border:1px solid #e3e8ef;border-radius:12px;padding:12px;margin-top:12px}
-.card h3{margin:0 0 8px;font-size:15px;color:#1e3a5f}
-.up{display:inline-flex;gap:6px;padding:10px 16px;border:2px dashed #2563eb;border-radius:10px;color:#2563eb;font-weight:600;cursor:pointer;background:#eff6ff}
-#chz:empty::before{content:'אין חזניות בנתונים - טענו קבצים תחילה';color:#64748b}
-#chz label{display:inline-block;margin:4px 0 4px 10px}
+.idb{background:#eef2f6;border-radius:6px;padding:2px 7px;font-family:monospace;font-size:12px}
+.wk{background:#e0f2fe;color:#0369a1;border:1px solid #7dd3fc;border-radius:6px;padding:2px 7px;font-weight:600;font-size:12px}
+.wkrow{display:flex;align-items:center;gap:3px;margin-top:3px;flex-wrap:nowrap}
+.wkrow small{min-width:70px;color:#64748b;font-size:11px}
+.d{display:inline-block;width:22px;height:22px;line-height:22px;border-radius:50%;text-align:center;font-size:12px;cursor:pointer;color:#fff;font-weight:700}
+.d.grn{background:#16a34a}.d.yel{background:#facc15;color:#422006}.d.pnk{background:#ec4899}.d.red{background:#dc2626}.d.gry{background:#cbd5e1;color:#334155}.d.pcb{background:#2563eb}
+.d.today{box-shadow:0 0 0 2px #1e3a5f}
+.st-v{background:#dcfce7;color:#166534}.st-r{background:#dcfce7;color:#166534}.st-c{background:#ffedd5;color:#9a3412}.st-p{background:#f1f5f9;color:#475569}.st-t{background:#fce7f3;color:#9d174d}.st-pc{background:#dbeafe;color:#1e40af}
+.pb{height:6px;background:#e2e8f0;border-radius:4px;width:120px;margin:3px 0}.pb i{display:block;height:100%;background:#16a34a;border-radius:4px}
+.modal{display:none;position:fixed;inset:0;background:#0007;align-items:center;justify-content:center;z-index:9}
+.card{background:#f8fafc;border-radius:16px;width:min(760px,95vw);max-height:88vh;overflow:auto;padding:18px;box-shadow:0 10px 40px #0004}
+.mh{display:flex;justify-content:space-between;align-items:center}.mh h2{margin:0;font-size:18px}
+.x{background:#e2e8f0;border:0;border-radius:50%;width:32px;height:32px;cursor:pointer;font-size:14px}
+.card section{background:#fff;border:1px solid #e3e8ef;border-radius:12px;padding:12px;margin-top:10px}
+.card h3{margin:0 0 6px;font-size:15px;color:#1e3a5f}
+.up{display:inline-flex;gap:6px;padding:9px 14px;border:2px dashed #2563eb;border-radius:10px;color:#2563eb;font-weight:600;cursor:pointer;background:#eff6ff}
+.legend span{margin-left:12px;font-size:13px}
+small{color:#64748b}
 </style>
 </head>
 <body>
 <header>
-  <h1>🗓️ ניהול תורנויות <small id="cn" style="font-size:13px;color:#fff"></small></h1>
+  <h1>🗓️ ניהול תורנויות</h1>
   <div class="hb">
-    <button class="btn pri" id="run">⚡ בצע מיון, זיווג הדדי ושיבוץ</button>
-    <button class="btn soft" id="pre">📌 תלמידות בתפקיד</button><button class="btn soft" id="set">⚙️ הגדרות</button>
-    <button class="btn grn" id="xl">📥 ייצוא לאקסל</button>
+    <span id="conn" class="pill">⚪ לא מחובר</span>
+    <button class="btn pri" id="run">⚡ שבץ מחדש</button>
+    <button class="btn vio" id="map">🗺️ מפת שבוע</button>
+    <button class="btn soft" id="pre">📌 תלמידות בתפקיד</button>
+    <button class="btn soft" id="set">⚙️ הגדרות</button>
+    <button class="btn grn" id="xl">📥 אקסל כיתות</button>
+    <button class="btn soft" id="xm">📊 אקסל מדדים</button>
   </div>
 </header>
 
-<div class="box row">
-  <input id="q" placeholder="חפש לפי שם תלמידה או תעודת זהות..." style="flex:2;min-width:220px">
-  <select id="fc1"><option value="">כל הכיתות</option></select>
-  <select id="fr"><option value="">כל התפקידים</option><option value="1">תורנית כיתה</option><option value="2">תורנית ארון</option><option value="3">תורנית יומן</option><option value="4">חזנית תפילה</option></select>
-  <select id="fs"><option value="">כל הסטטוסים</option><option value="verified">🟢✔ דיווחה + אושר מורה</option><option value="reported">🟢 דיווחה היום</option><option value="conflict">🟠 דיווח סותר</option><option value="pending">⚪ טרם דווח</option></select>
-  <small id="cnt"></small> <small id="msg"></small>
+<div class="box legend">
+  <span>🟡 דיווחה (טלפון)</span><span>🩷 דיווח מורה</span><span>🟢 שניהם</span><span>🔴 לא עדכנה</span><span>🔵 עודכן במחשב</span><span>⚪ טרם</span>
 </div>
 
-<div id="pm"><div class="card" style="width:min(780px,95vw)">
-  <div class="mh"><h2>📌 תלמידות שכבר בתפקיד</h2><button class="x" data-close>✕</button></div>
-  <p><small>סמני מי עושה כבר תפקיד ובאיזה שבוע (ריק = השבוע הנוכחי). השיבוץ של שאר התלמידות יסתדר סביבן.</small></p>
-  <div class="row"><input id="pq" placeholder="חיפוש שם / ת״ז"><select id="pc"><option value="">כל הכיתות</option></select></div>
-  <div class="tw" style="max-height:55vh;margin-top:8px"><table><thead><tr><th>שם</th><th>כיתה</th><th>בחירה בקובץ</th><th>כבר בתפקיד</th><th>שבוע</th></tr></thead><tbody id="pt"></tbody></table></div>
-</div></div>
-<div id="sm"><div class="card">
-  <div class="mh"><h2>⚙️ הגדרות</h2><button class="x" data-close>✕</button></div>
-  <section><h3>🔌 חיבור לשרת הדיווח</h3><div class="row">
-    <input id="apiu" placeholder="https://el-tornuyot.onrender.com" style="flex:2;min-width:220px;direction:ltr">
-    <input id="apip" type="password" placeholder="סיסמת מנהל" style="width:150px">
-    <button class="btn pri" id="cbtn">התחבר ובדוק</button></div><p id="cns"></p></section>
-  <section><h3>📁 קבצים מתיקיית האתר</h3><p><small>שם הקובץ בלי סיומת (xlsx / xls / csv), באותה תיקייה של דף זה בשרת. נטענים אוטומטית בכל כניסה.</small></p><div class="row">
-    <input id="fnm1" value="master" style="width:120px;direction:ltr"><span>קובץ אב</span>
-    <input id="fnm2" value="choices" style="width:120px;direction:ltr"><span>קובץ בחירות</span>
-    <button class="btn pri" id="ffd">🔄 טען מהתיקייה</button></div></section>
-  <section><h3>📂 העלאה ידנית</h3><div class="row">
-    <label class="up">📄 העלאת קובץ אב<input type="file" id="fm" accept=".xlsx,.xls,.csv" hidden></label>
-    <label class="up">🗳️ העלאת קובץ בחירות<input type="file" id="fc" accept=".xlsx,.xls,.csv" hidden></label></div></section>
-  <section><h3>↕️ מיון</h3><select id="so"><option value="a">כיתה ← תפקיד ← שבוע</option><option value="b">תפקיד ← כיתה ← שבוע</option></select></section>
-  <section><h3>🎤 חזנית תפילה - כמה בכל שבוע, לכל כיתה</h3><p><small>מספר קבוע (2) או רשימה לפי שבועות (2,1,3 - האחרון חוזר). כשמשנים, השיבוץ מתעדכן.</small></p><div id="chz"></div></section>
-  <section><h3>📅 שבוע ויום</h3><div class="row">
-    <label>שבוע נוכחי: <input type="number" id="cw" min="1" value="1" style="width:70px"></label>
-    <label>יום (לבדיקות): <select id="dov"><option value="">היום האמיתי</option></select></label></div></section>
-  <section><h3>📞 בדיקת שלוחת דיווח</h3><div class="row">
-    <input id="ivid" placeholder="הקשת ת״ז" style="width:140px">
-    <button class="btn pri" data-k="1">1 ביצעתי</button><button class="btn pri" data-k="2">2 לא ביצעתי</button><button class="btn pri" data-k="3">3 יום חופשי</button></div>
-    <p><b id="ivr" style="color:#1e3a5f"></b></p></section>
-  <section><h3>🧰 כלים</h3><div class="row">
-    <button class="btn soft" id="demo" style="border:1px solid #cbd5e1">נתוני דוגמה</button>
-    <button class="btn soft" style="border:1px solid #cbd5e1" onclick="localStorage.removeItem('api');sessionStorage.removeItem('pw');location.reload()">🔌 שינוי כתובת שרת / סיסמה</button>
-    <button class="btn dng" id="clr">🗑️ איפוס כל הנתונים</button></div></section>
-</div></div>
+<div class="box">
+  <input id="q" placeholder="חפש שם או תעודת זהות..." style="flex:2;min-width:200px">
+  <select id="fc"><option value="">כל הכיתות</option></select>
+  <select id="fr"><option value="">כל התפקידים</option><option value="1">תורנית כיתה</option><option value="2">תורנית ארון</option><option value="3">תורנית יומן</option><option value="4">חזנית תפילה</option></select>
+  <select id="fs"><option value="">כל הסטטוסים</option><option value="pc">🔵 עודכן במחשב</option><option value="v">🟢 דיווחה + אושר מורה</option><option value="r">🟡 דיווחה</option><option value="t">🩷 דיווח מורה</option><option value="p">⚪ טרם</option></select>
+  <select id="so"><option value="a">מיון: כיתה ← תפקיד ← שבוע</option><option value="b">מיון: תפקיד ← כיתה ← שבוע</option></select>
+  <label>שבוע נוכחי: <select id="cur"></select></label>
+  <small id="cnt"></small><small id="msg"></small>
+</div>
 
-<div class="box tw"><table>
-<thead><tr><th>תעודת זהות</th><th>שם התלמידה</th><th>כיתה</th><th>טלפון</th><th>איזה תפקיד</th><th>איזה שבוע</th><th>מי השותפה שלה</th><th>סטטוס דיווח להיום</th><th>מצב ביצוע שבועי (א׳-ו׳)</th><th>אירועים והיסטוריה</th></tr></thead>
+<div class="tw"><table>
+<thead><tr><th>ת״ז</th><th>שם התלמידה</th><th>כיתה</th><th>טלפון</th><th>תפקיד</th><th>תקופה</th><th>שותפה</th><th>סטטוס היום</th><th>מצב (ימים)</th><th></th></tr></thead>
 <tbody id="tb"></tbody></table></div>
 
-<div id="md"><div id="mdc"></div></div>
+<div class="modal" id="sm"><div class="card">
+  <div class="mh"><h2>⚙️ הגדרות</h2><button class="x" data-close>✕</button></div>
+  <section><h3>🔌 חיבור לשרת (נכנסים מכל דפדפן)</h3><div class="hb">
+    <input id="apiu" placeholder="ריק = האתר הזה" style="flex:2;min-width:200px;direction:ltr">
+    <input id="apip" type="password" placeholder="סיסמת מנהל" style="width:160px">
+    <button class="btn pri" id="cbtn">התחבר</button></div><p id="cns"></p></section>
+  <section><h3>📂 קבצים</h3><div class="hb">
+    <label class="up">📄 קובץ אב<input type="file" id="fm" accept=".xlsx,.xls,.csv" hidden></label>
+    <label class="up">🗳️ קובץ בחירות<input type="file" id="fcf" accept=".xlsx,.xls,.csv" hidden></label></div></section>
+  <section><h3>📞 צינתוק יומי לתורניות</h3><div class="hb">
+    <label><input type="checkbox" id="tzon"> פעיל</label>
+    <label>שעה: <input type="time" id="tzt" style="direction:ltr"></label></div>
+    <p><small>כל יום פעילות (א׳-ו׳) נשלח צינתוק פעם אחת לכל התורניות של השבוע הנוכחי. הצינתוק בתשלום (0.1 יחידה לכל מספר).</small></p></section>
+  <section><h3>🎤 חזניות לכל כיתה (למחצית)</h3><div id="chzl"></div><p><small>אם מסומנות פחות חזניות ממה שהוגדר, השיבוץ ימלא מתלמידות שלא בחרו תפקיד.</small></p></section>
+  <section><h3>🗄️ תקופות</h3><p><small>תורנית כיתה: 11 שבועות לפי הרשימה. תורנית ארון: 2 לחודש, חשוון / כסלו / טבת. תורנית יומן: למחצית.</small></p></section>
+  <section><h3>🧰 כלים</h3><div class="hb"><button class="btn dng" id="clr">🗑️ איפוס כל הנתונים</button></div></section>
+</div></div>
+
+<div class="modal" id="pm"><div class="card">
+  <div class="mh"><h2>📌 תלמידות שכבר בתפקיד / עשו סבב</h2><button class="x" data-close>✕</button></div>
+  <p><small>סמני את כל מי שכבר ממלאת תפקיד או עשתה סבב, ורק אז בצעי שיבוץ. השיבוץ לא רץ בזמן הסימון.</small></p>
+  <div class="hb"><button class="btn grn" id="lockb">🔒 סיימתי להכניס - בצע שיבוץ</button><button class="btn soft" id="unlockb">🔓 פתח לעריכה</button><small id="pst"></small></div>
+  <div class="hb"><input id="pq" placeholder="חיפוש"><select id="pc"><option value="">כל הכיתות</option></select></div>
+  <div class="tw" style="max-height:58vh;margin:8px 0 0"><table><thead><tr><th>שם</th><th>כיתה</th><th>תפקיד</th><th>שבוע / חודש</th><th>עשתה בסבב</th></tr></thead><tbody id="pt"></tbody></table></div>
+</div></div>
+
+<div class="modal" id="em"><div class="card" id="emc"></div></div>
+<div class="modal" id="mm"><div class="card" id="mmc"></div></div>
+<div class="modal" id="pcm"><div class="card" style="width:min(420px,94vw)">
+  <div class="mh"><h2>עדכון במחשב</h2><button class="x" data-close>✕</button></div>
+  <p id="pct"></p>
+  <div class="hb" id="pcb"></div>
+  <p><small>עדכון במחשב נצבע בכחול ונשמר בנפרד מדיווח הטלפון.</small></p>
+</div></div>
 
 <script>
 const $=s=>document.querySelector(s);
 const DAYS=['א','ב','ג','ד','ה','ו'];
-const ROLES={0:'ללא בחירה',1:'תורנית כיתה',2:'תורנית ארון',3:'תורנית יומן',4:'חזנית תפילה'};
-const ST={verified:['🟢✔ דיווחה + אושר מורה','st-v'],reported:['🟢 דיווחה היום','st-r'],conflict:['🟠 דיווח סותר','st-c'],pending:['⚪ טרם דווח','st-p'],na:['— לא בשבוע זה','st-p']};
+const SLOTS=['ל׳ בתשרי','ז׳ בחשוון','י״ד בחשוון','כ״א בחשוון','כ״ח בחשוון','ה׳ בכסלו','י״ב בכסלו','י״ט בכסלו','ג׳ בטבת','י׳ בטבת','י״ז בטבת'];
+const NS=11;
+const MONTHS=[{n:'חשוון',f:2,t:5},{n:'כסלו',f:6,t:8},{n:'טבת',f:9,t:11}];
+const ROLES={1:'תורנית כיתה',2:'תורנית ארון',3:'תורנית יומן',4:'חזנית תפילה'};
+const FVAL={full:'✔ ביצעה מלא',partial:'◐ ביצעה חלקי',missed:'✘ לא ביצעה',free:'יום חופש'};
+const PTS={full:1,partial:.5,missed:0,free:1};
 const hc=(a,b)=>String(a).localeCompare(String(b),'he',{numeric:true});
 const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-let S={students:{},rows:[],cfg:{chaz:{}},rep:{},log:[],curWeek:1,dayOv:''};
-function normApi(v){v=(v||'').trim().replace(/\/+$/,'');if(v&&!/^https?:\/\//i.test(v))v='https://'+v;return v}
-let API=normApi(localStorage.getItem('api')||(location.hostname.endsWith('onrender.com')?location.origin:''));
-let PASS=localStorage.getItem('pw')||'',RESET=0,tm;
-async function api(method,body){const r=await fetch(API+'/api/state'+(RESET&&method==='PUT'?'?reset=1':''),{method,headers:{'x-pass':PASS,'Content-Type':'application/json'},body:body?JSON.stringify(body):undefined});
-  if(r.status===401)throw new Error('auth');if(!r.ok)throw new Error('שגיאת שרת '+r.status);RESET=0;return r.json()}
-const conn=(ok,t)=>{const e=$('#cn');if(e){e.textContent=ok?'🟢 מחובר לשרת':'🔴 לא מחובר: '+t;e.style.color=ok?'#9f9':'#fbb'}const c=$('#cns');if(c)c.textContent=t||''};
-const save=()=>{clearTimeout(tm);tm=setTimeout(async()=>{try{const m=await api('PUT',S);if(m&&m.rows){S=m;render()}conn(true)}catch(e){conn(false,'השמירה נכשלה - '+e.message)}},400)};
+const nowIL=()=>new Date().toLocaleString('he-IL',{timeZone:'Asia/Jerusalem'});
+const dayIdx=()=>{const d=new Intl.DateTimeFormat('en-US',{weekday:'short',timeZone:'Asia/Jerusalem'}).format(new Date());return({Sun:0,Mon:1,Tue:2,Wed:3,Thu:4})[d]??(d==='Fri'?5:-1)};
 
-/* ---------- ניקוי נתונים ---------- */
-function cid(v){if(v==null||v==='')return'';let s=typeof v==='number'?v.toFixed(0):String(v).trim();
-  if(/e/i.test(s)&&!isNaN(+s))s=(+s).toFixed(0);s=s.replace(/\.0+$/,'').replace(/\D/g,'');return s?s.padStart(9,'0'):''}
-function cph(v){let s=String(v==null?'':v).replace(/\D/g,'');if(s.length===9&&s[0]!=='0')s='0'+s;return s}
+let S={students:{},pre:{},cfg:{curSlot:1},rows:[],rep:{},log:[]};
+let WARN=[];
+let RR={},RLOG=[];
+
+/* ---------- שרת (הדפדפן מדבר רק עם השרת שלנו, לא עם גיטאב) ---------- */
+let SRV='',PASS='',dirty=false;
+async function api(m,p,body){if(!SRV||!PASS)throw new Error('חסרה כתובת או סיסמה');
+  const r=await fetch(SRV+p,{method:m,headers:Object.assign({'x-pass':PASS},body?{'Content-Type':'application/json'}:{}),body:body?JSON.stringify(body):undefined});
+  if(r.status===401)throw new Error('auth');
+  if(!r.ok){let t='';try{t=(await r.json()).error||''}catch(e){}throw new Error('שגיאת שרת '+r.status+(t?': '+t:''))}
+  return r.json()}
+let saveT=null;
+function save(){dirty=true;clearTimeout(saveT);saveT=setTimeout(async()=>{try{await api('PUT','/api/state',{students:S.students,pre:S.pre,cfg:S.cfg,rows:S.rows,rep:S.rep,log:S.log});dirty=false;conn(true,'נשמר')}catch(e){conn(false,'השמירה נכשלה: '+e.message)}},400)}
+async function loadAll(){const d=await api('GET','/api/data');const st=d.state;
+  if(st&&!dirty){S={students:st.students||{},pre:st.pre||{},cfg:Object.assign({curSlot:1},st.cfg||{}),rows:st.rows||[],rep:st.rep||{},log:st.log||[]}}
+  RR=(d.reports&&d.reports.rep)||{};RLOG=(d.reports&&d.reports.log)||[]}
+async function loadReports(){const d=await api('GET','/api/data');RR=(d.reports&&d.reports.rep)||{};RLOG=(d.reports&&d.reports.log)||[]}
+function conn(ok,t){const c=$('#conn');c.className='pill';c.style.background=ok?'#dcfce7':'#ffedd5';c.textContent=ok?'🟢 מחובר':'🟠 לא מחובר';if(t!==undefined)$('#cns').textContent=t}
+async function connect(){SRV=($('#apiu').value.trim()||location.origin).replace(/\/$/,'');PASS=$('#apip').value.trim();
+  if(!PASS){conn(false,'הזיני סיסמת מנהל');return}
+  try{$('#cns').textContent='מתחבר...';await loadAll();localStorage.setItem('srv',SRV);localStorage.setItem('pw',PASS);
+    $('#cns').textContent='';conn(true);$('#cur').value=S.cfg.curSlot;apply(false);$('#cnt').textContent='נטענו '+Object.keys(S.students).length+' תלמידות'}
+  catch(e){conn(false,e.message==='auth'?'הסיסמה שגויה':e.message)}}
+
+/* ---------- נתונים מקבצים ---------- */
+async function rd(f){return new Promise(res=>{const r=new FileReader();r.onload=()=>{const wb=XLSX.read(r.result,{type:'array'});res(XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,raw:true,defval:''}))};r.readAsArrayBuffer(f)})}
+const cid=v=>{if(v==null||v==='')return'';let s=typeof v==='number'?v.toFixed(0):String(v).trim();if(/e/i.test(s)&&!isNaN(+s))s=(+s).toFixed(0);s=s.replace(/\.0+$/,'').replace(/\D/g,'');return s?s.padStart(9,'0'):''};
+const cph=v=>{let s=String(v==null?'':v).replace(/\D/g,'');if(s.length===9&&s[0]!=='0')s='0'+s;return s};
 const norm=h=>String(h).replace(/[\s"'״׳`]/g,'').toLowerCase();
-function col(h,names){for(const n of names){const i=h.findIndex(x=>x.includes(n));if(i>=0)return i}return -1}
-function rd(f){return new Promise(res=>{const r=new FileReader();r.onload=()=>{const wb=XLSX.read(r.result,{type:'array'});
-  res(XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,raw:true,defval:''}))};r.readAsArrayBuffer(f)})}
-const log=(id,msg,once)=>{if(once&&S.log.some(l=>l.id===id&&l.msg===msg))return;S.log.push({t:new Date().toLocaleString('he-IL'),id,msg})};
-
-function loadMaster(rows){const h=rows[0].map(norm),ci=col(h,['תעודתזהות','תז','מספרזיהוי']),cn=col(h,['שםהתלמידה','שם']),cc=col(h,['כיתתאם','כיתה']);
-  if(ci<0||cn<0){alert('לא נמצאו עמודות ת״ז / שם התלמידה');return}
-  let n=0;rows.slice(1).forEach(r=>{const id=cid(r[ci]);if(!id)return;n++;
-    S.students[id]=Object.assign({id,role:0,phone:'',pair:''},S.students[id],{name:r[cn],cls:(cc>=0&&r[cc])||'ללא כיתה'})});
-  $('#msg').textContent='נטענו '+n+' תלמידות מקובץ האב'}
+const col=(h,names)=>{for(const n of names){const i=h.findIndex(x=>x.includes(n));if(i>=0)return i}return -1};
+function loadMaster(rows){const h=rows[0].map(norm),ci=col(h,['תעודתזהות','תז']),cn=col(h,['שםהתלמידה','שם']),cc=col(h,['כיתתאם','כיתה']);
+  if(ci<0||cn<0){alert('לא נמצאו עמודות ת״ז / שם');return}
+  rows.slice(1).forEach(r=>{const id=cid(r[ci]);if(!id)return;S.students[id]=Object.assign({id,role:0,phone:'',pair:''},S.students[id],{name:r[cn],cls:(cc>=0&&r[cc])||'ללא כיתה'})})}
 function loadChoices(rows){const h=rows[0].map(norm),ci=col(h,['מספרזיהוי','תעודתזהות','תז']),a=col(h,['p050']),b=col(h,['p051']),c=col(h,['p052']);
-  if(ci<0){alert('לא נמצאה עמודת מספר זיהוי');return}
-  let n=0,miss=0;rows.slice(1).forEach(r=>{const id=cid(r[ci]),s=S.students[id];if(!id)return;if(!s){miss++;return}n++;
-    const ro=parseInt(r[a]);s.role=ro>=1&&ro<=4?ro:0;s.phone=b>=0?cph(r[b]):'';s.pair=c>=0?cid(r[c]):''});
-  $('#msg').textContent='עודכנו '+n+' בחירות'+(miss?' ('+miss+' ללא התאמה בקובץ האב)':'')}
+  if(ci<0)return;rows.slice(1).forEach(r=>{const id=cid(r[ci]),s=S.students[id];if(!id||!s)return;const ro=parseInt(r[a]);
+    s.role=ro>=1&&ro<=4?ro:0;s.phone=b>=0?cph(r[b]):'';s.pair=c>=0?cid(r[c]):''})}
+$('#fm').onchange=async e=>{loadMaster(await rd(e.target.files[0]));apply(true)};
+$('#fcf').onchange=async e=>{loadChoices(await rd(e.target.files[0]));apply(true)};
 
 /* ---------- שיבוץ ---------- */
-function build(){const by={};Object.values(S.students).forEach(s=>(by[s.cls]=by[s.cls]||[]).push(s));S.rows=[];S.pre=S.pre||{};const cw=+S.curWeek||1;
-  Object.keys(by).sort(hc).forEach(c=>{const L=by[c],pr=s=>S.pre[s.id],eff=s=>pr(s)?pr(s).role:s.role,wk=s=>+pr(s).week||cw;
-    const push=(id,role,week,partners,mut)=>S.rows.push({id,role,week,partners,mut:mut||0,pre:S.pre[id]?1:0});
-    /* תורנית כיתה: זוגות. מסומנות מראש קבועות בשבוע שלהן, השאר מסביבן */
-    const fixed={},pool=[];L.filter(s=>eff(s)==1).forEach(s=>pr(s)?(fixed[wk(s)]=fixed[wk(s)]||[]).push(s.id):pool.push(s));
-    const used=new Set(),free=[];
+function build(){
+  WARN=[];const by={};Object.values(S.students).forEach(s=>(by[s.cls]=by[s.cls]||[]).push(s));
+  const P=id=>S.pre[id]||{};const rows=[];
+  Object.keys(by).sort(hc).forEach(c=>{
+    const L=by[c].filter(s=>!P(s.id).done);
+    const role=s=>P(s.id).role?+P(s.id).role:s.role;
+    const push=(id,r,f,t,partners,mut)=>rows.push({id,role:r,from:f,to:t,partners,mut:mut||0,pre:!!S.pre[id]});
+    /* חזנית: למחצית, ללא סימון */
+    let M=L.filter(s=>role(s)==4).map(s=>s.id);
+    const need=+(S.cfg.chaz||{})[c]||0;
+    if(need>M.length){const fill=L.filter(s=>s.cls===c&&role(s)==0&&!M.includes(s.id)&&S.students[s.id]&&S.students[s.id].cls===c).slice(0,need-M.length).map(s=>s.id);M=M.concat(fill)}
+    if(need&&M.length<need)WARN.push(`כיתה ${c}: הוגדרו ${need} חזניות, שובצו ${M.length}`);
+    M.forEach(id=>push(id,4,1,NS,[]));
+    /* תורנית יומן: למחצית, בודדת לכל תלמידה */
+    L.filter(s=>role(s)==3).forEach(s=>push(s.id,3,1,NS,[]));
+    /* תורנית ארון: 2 בנות לחודש */
+    const mg=[[],[],[],[]],pool2=[];
+    L.filter(s=>role(s)==2).forEach(s=>{const m=+P(s.id).month;if(m>=1&&m<=3&&mg[m].length<2)mg[m].push(s.id);else pool2.push(s.id)});
+    pool2.forEach(id=>{let best=1;for(let m=1;m<=3;m++)if(mg[m].length<mg[best].length)best=m;if(mg[best].length<2)mg[best].push(id);else push(id,2,0,0,[])});
+    for(let m=1;m<=3;m++)mg[m].forEach(id=>push(id,2,MONTHS[m-1].f,MONTHS[m-1].t,mg[m].filter(x=>x!==id)));
+    /* תורנית כיתה: זוגות על 11 השבועות */
+    const fixed={},pool=[];
+    L.filter(s=>role(s)==1).forEach(s=>{const w=+P(s.id).week;if(P(s.id).role&&w>=1&&w<=NS)(fixed[w]=fixed[w]||[]).push(s.id);else pool.push(s)});
+    const used=new Set(),pairs=[];
     pool.forEach(a=>{if(used.has(a.id))return;const b=S.students[a.pair];
-      if(b&&b.id!==a.id&&b.pair===a.id&&pool.includes(b)&&!used.has(b.id)){used.add(a.id);used.add(b.id);free.push({m:[a.id,b.id],mut:1});
-        log(a.id,'זיווג הדדי אושר עם '+b.name,1);log(b.id,'זיווג הדדי אושר עם '+a.name,1)}
-      else if(a.pair)log(a.id,'בקשת זיווג חד-צדדית/לא תקפה בוטלה - שיבוץ אוטומטי',1)});
+      if(b&&b.id!==a.id&&b.pair===a.id&&pool.some(x=>x.id===b.id)&&!used.has(b.id)){used.add(a.id);used.add(b.id);pairs.push({m:[a.id,b.id],mut:1})}});
     const rest=pool.filter(s=>!used.has(s.id)).map(s=>s.id);
     Object.values(fixed).forEach(g=>{if(g.length<2&&rest.length){const me=g[0],k=rest.findIndex(x=>S.students[x].pair===me&&S.students[me].pair===x);g.push(rest.splice(k>=0?k:0,1)[0])}});
-    for(let i=0;i<rest.length;i+=2)free.push({m:rest.slice(i,i+2)});
-    if(free.length>1&&free[free.length-1].m.length===1)free[free.length-2].m.push(free.pop().m[0]);
-    const fw=Object.keys(fixed).map(Number);let w=cw-1;const nx=()=>{do w++;while(fw.includes(w));return w};
-    fw.forEach(k=>fixed[k].forEach(id=>push(id,1,k,fixed[k].filter(x=>x!==id))));
-    free.forEach(g=>{const k=nx();g.m.forEach(id=>push(id,1,k,g.m.filter(x=>x!==id),g.mut))});
-    /* ארון ויומן: תורנית יחידה בכל שבוע */
-    [2,3].forEach(r=>{const fx=new Set(),pl=[];L.filter(s=>eff(s)==r).forEach(s=>{if(pr(s)){push(s.id,r,wk(s),[]);fx.add(wk(s))}else pl.push(s)});
-      let k=cw-1;pl.forEach(s=>{do k++;while(fx.has(k));push(s.id,r,k,[])})});
-    /* חזנית: תפקיד דינמי. כמות לכל שבוע: "2" קבוע או "2,1,3" (האחרון חוזר). המאגר מתחלק מחדש לפי הכמות */
-    const cnt=String(S.cfg.chaz[c]||'').split(',').map(Number).filter(x=>x>0),fx4={},p4=[];
-    L.filter(s=>eff(s)==4).forEach(s=>pr(s)?(fx4[wk(s)]=fx4[wk(s)]||[]).push(s.id):p4.push(s.id));
-    const fk=Object.keys(fx4).map(Number);
-    if(!cnt.length){fk.forEach(k=>fx4[k].forEach(id=>push(id,4,k,fx4[k].filter(x=>x!==id))));p4.forEach(id=>push(id,4,0,[]))}
-    else{const st=Math.min(cw,...fk),mx=Math.max(0,...fk);
-      for(let k=st,i=0;p4.length||k<=mx;k++,i++){const need=cnt[Math.min(i,cnt.length-1)],m=(fx4[k]||[]).slice();
-        while(m.length<need&&p4.length)m.push(p4.shift());m.forEach(id=>push(id,4,k,m.filter(x=>x!==id)))}}});
-  save()}
-
-/* ---------- דיווחים וציונים ---------- */
-const dayIdx=()=>{if(S.dayOv!=='')return +S.dayOv;const d=new Date().getDay();return d<=5?d:-1};
-const rk=r=>r.id+'|'+r.week;
-const val=e=>e?(e.t||e.s):null;
-const arr=r=>S.rep[rk(r)]||[];
-const score=r=>{const a=arr(r);let n=0;for(let i=0;i<6;i++){const v=val(a[i]);if(v==='done'||v==='free')n++}return n};
-function status(r){if(!r.week||r.week!=S.curWeek)return'na';const d=dayIdx(),e=arr(r)[d];if(!e||(!e.s&&!e.t))return'pending';
-  if(e.s&&e.t)return e.s===e.t?'verified':'conflict';return e.t?'verified':'reported'}
-function ivr(idRaw,key){const id=cid(idRaw),r=S.rows.find(x=>x.id===id),d=dayIdx();
-  if(!r||!r.week||r.week!=S.curWeek||d<0){log(id||'0','דיווח נדחה - לא משובצת בתקופה זו');save();return'אינך משובצת לתורנות בתקופה זו'}
-  const m={1:'done',2:'missed',3:'free'}[key];if(!m)return'מקש לא תקין';
-  const k=rk(r);S.rep[k]=S.rep[k]||[];S.rep[k][d]=Object.assign(S.rep[k][d]||{},{s:m});
-  log(id,'דיווח תלמידה ליום '+DAYS[d]+': '+{done:'ביצעתי',missed:'לא ביצעתי',free:'יום חופשי'}[m]);save();render();return'הדיווח התקבל, תודה'}
-window.ivrReport=ivr; // נקודת חיבור ל-API (ראו הערה בסוף)
+    for(let i=0;i<rest.length;i+=2)pairs.push({m:rest.slice(i,i+2),mut:0});
+    if(pairs.length>1&&pairs[pairs.length-1].m.length===1)pairs[pairs.length-2].m.push(pairs.pop().m[0]);
+    const freeSlots=[];for(let w=1;w<=NS;w++)if(!fixed[w])freeSlots.push(w);
+    Object.entries(fixed).forEach(([w,ids])=>ids.forEach(id=>push(id,1,+w,+w,ids.filter(x=>x!==id))));
+    pairs.forEach((g,i)=>{const w=freeSlots[i]||0;g.m.forEach(id=>push(id,1,w,w,g.m.filter(x=>x!==id),g.mut))});
+  });
+  S.rows=rows;
+}
+function apply(doSave){if(S.cfg.locked)build();render();if(doSave)save()}
+function lockAndBuild(){S.cfg.locked=true;build();render();save();$('#msg').textContent=WARN.length?'⚠ '+WARN.join(' | '):'✔ השיבוץ בוצע';$('#pst').textContent='מצב: משובץ (שינויים מתעדכנים מיד)'}
 
 /* ---------- תצוגה ---------- */
-function sorted(){const A=S.rows.map(r=>({r,s:S.students[r.id]})).filter(x=>x.s);const w=x=>x.r.week||999;
-  A.sort((x,y)=>$('#so').value==='a'?hc(x.s.cls,y.s.cls)||x.r.role-y.r.role||w(x)-w(y):x.r.role-y.r.role||hc(x.s.cls,y.s.cls)||w(x)-w(y));return A}
-function vis(){const q=$('#q').value.trim(),c=$('#fc1').value,ro=$('#fr').value,st=$('#fs').value;
-  return sorted().filter(({r,s})=>(!q||s.name.includes(q)||s.id.includes(cid(q)||q))&&(!c||s.cls===c)&&(!ro||r.role==ro)&&(!st||status(r)===st))}
-function render(){const cur=$('#fc1').value;$('#fc1').innerHTML='<option value="">כל הכיתות</option>'+[...new Set(Object.values(S.students).map(s=>s.cls))].sort(hc).map(c=>`<option ${c===cur?'selected':''}>${esc(c)}</option>`).join('');
-  const d=dayIdx(),V=vis();$('#cnt').textContent=V.length+' שורות';
-  $('#tb').innerHTML=V.map(({r,s})=>{const st=status(r),sc=score(r),a=arr(r),pn=r.partners.map(p=>S.students[p].name).join(', ')||'תורנית יחידה',lg=S.log.filter(l=>l.id===r.id).length;
-    const circ=DAYS.map((n,i)=>{const v=val(a[i]);return `<span class="d ${v||''} ${i===d&&r.week==S.curWeek?'today':''}" data-id="${r.id}" data-i="${i}" title="לחיצה: אישור מורה (ביצעה/לא/חופשי)">${n}</span>`}).join('');
-    return `<tr><td><span class="idb">${r.id}</span></td><td><b>${esc(s.name)}</b></td><td>${esc(s.cls)}</td><td class="ph">${esc(s.phone)}</td><td>${ROLES[r.role]}</td>
-    <td>${r.week?`<span class="wk">${r.pre?'📌 ':''}שבוע ${r.week}</span>`:'<small>ממתין לקביעת מספר</small>'}</td><td class="${r.mut?'mut':''}">${esc(pn)}${r.mut?' (זיווג הדדי)':''}</td>
-    <td><span class="pill ${ST[st][1]}">${ST[st][0]}</span></td><td>${sc}/6 ימים<div class="pb"><i style="width:${sc/6*100}%"></i></div>${circ}</td>
-    <td><button class="b2" data-lg="${r.id}">📋 יומן (${lg})</button></td></tr>`}).join('');
-  const cls={};S.rows.filter(r=>r.role==4).forEach(r=>cls[S.students[r.id].cls]=(cls[S.students[r.id].cls]||0)+1);
-  $('#chz').innerHTML=Object.keys(cls).sort(hc).map(c=>`<label>חזניות ב${esc(c)} (${cls[c]}): <input type="text" data-c="${esc(c)}" value="${S.cfg.chaz[c]||''}" style="width:90px;direction:ltr" placeholder="2 או 2,1,3"></label>`).join(' ')}
+const rk=r=>r.id+'|'+r.from;
+const spanOf=r=>r.from?(r.to-r.from+1)*6:0;
+const curSlot=()=>+S.cfg.curSlot||1;
+const activePos=r=>{if(!r.from||r.role==4)return -1;const d=dayIdx();if(d<0)return -1;const c=curSlot();if(c<r.from||c>r.to)return -1;return (c-r.from)*6+d};
+const valOf=(r,i)=>{const k=rk(r),pc=(S.rep[k]||[])[i];if(pc)return{v:pc,src:'pc'};const rr=(RR[k]||[])[i]||{};if(rr.stu)return{v:rr.stu,src:'stu'};return null};
+const score=r=>{let n=0;for(let i=0;i<spanOf(r);i++){const x=valOf(r,i);if(x)n+=PTS[x.v]||0}return n};
+function status(r){const p=activePos(r);if(p<0)return'na';const k=rk(r),pc=(S.rep[k]||[])[p],rr=(RR[k]||[])[p]||{},tch=rr.tch&&Object.values(rr.tch);
+  if(pc)return'pc';if(rr.stu&&tch&&tch.length)return tch.includes('bad')?'c':'v';if(rr.stu)return'r';if(tch&&tch.length)return't';return'p'}
+const STL={pc:['🔵 עודכן במחשב','st-pc'],v:['🟢✔ דיווחה + אושר מורה','st-v'],r:['🟡 דיווחה','st-r'],t:['🩷 דיווח מורה','st-t'],c:['🟠 דיווח סותר','st-c'],p:['⚪ טרם דווח','st-p'],na:['— לא בתקופה','st-p']};
+function cellsHtml(r){
+  if(!r.from)return'<small>ממתינה לשיבוץ</small>';
+  const k=rk(r),a=S.rep[k]||[],b=RR[k]||[],d=dayIdx(),today=d<0?-100:(curSlot()-1)*6+d;let h='';
+  for(let w=0;w<spanOf(r)/6;w++){let c='';
+    for(let j=0;j<6;j++){const i=w*6+j,abs=(r.from-1)*6+i,pc=a[i],rr=b[i]||{},tch=rr.tch&&Object.values(rr.tch);let cls,tip;
+      if(pc){cls='pcb';tip='עודכן במחשב: '+FVAL[pc]}
+      else if(rr.stu&&tch&&tch.length){cls='grn';tip='דיווחה + מורה'}
+      else if(rr.stu){cls='yel';tip='דיווחה: '+FVAL[rr.stu]}
+      else if(tch&&tch.length){cls=tch.includes('bad')?'pnk':'pnk';tip=tch.includes('bad')?'⚠ דיווח מורה: הרוב לא':'דיווח מורה'}
+      else if(today>=0&&abs<today){cls='red';tip='לא עודכן'}
+      else{cls='gry';tip='טרם'}
+      c+=`<span class="d ${cls} ${abs===today?'today':''}" data-k="${k}" data-i="${i}" title="${esc(tip)}">${DAYS[j]}</span>`}
+    h+=`<div class="wkrow"><small>${SLOTS[r.from-1+w]}</small>${c}</div>`}
+  return h}
+function periodTxt(r){if(!r.from)return'<span class="wk">ממתינה</span>';
+  if(r.role==4)return'<span class="wk">כל המחצית</span>';if(r.role==3)return'<span class="wk">כל המחצית</span>';
+  if(r.role==2){const m=MONTHS.find(x=>x.f===r.from);return'<span class="wk">חודש '+(m?m.n:'')+'</span>'}
+  return'<span class="wk">'+(r.pre?'📌 ':'')+'שבוע '+r.from+' - '+SLOTS[r.from-1]+'</span>'}
+function vis(){const q=$('#q').value.trim(),c=$('#fc').value,ro=$('#fr').value,st=$('#fs').value;
+  const rowBy={};S.rows.forEach(r=>rowBy[r.id]=r);
+  const A=Object.values(S.students).map(s=>({s,r:rowBy[s.id]||{id:s.id,role:(S.pre[s.id]&&S.pre[s.id].role)?+S.pre[s.id].role:s.role,from:0,to:0,partners:[],mut:0,pre:!!S.pre[s.id]}}));
+  return A.filter(({r,s})=>(!q||s.name.includes(q)||s.id.includes(q))&&(!c||s.cls===c)&&(!ro||r.role==ro)&&(!st||status(r)===st||(st==='v'&&status(r)==='v'))).sort((x,y)=>$('#so').value==='a'?hc(x.s.cls,y.s.cls)||x.r.role-y.r.role||x.r.from-y.r.from:x.r.role-y.r.role||hc(x.s.cls,y.s.cls)||x.r.from-y.r.from)}
+function render(){
+  const cur=$('#fc').value;$('#fc').innerHTML='<option value="">כל הכיתות</option>'+[...new Set(Object.values(S.students).map(s=>s.cls))].sort(hc).map(c=>`<option ${c===cur?'selected':''}>${esc(c)}</option>`).join('');
+  if(!$('#cur').options.length)$('#cur').innerHTML=SLOTS.map((t,i)=>`<option value="${i+1}">${i+1} - ${t}</option>`).join('');
+  $('#cur').value=curSlot();if(S.cfg.tz){$('#tzon').checked=!!S.cfg.tz.on;$('#tzt').value=S.cfg.tz.time||'07:30'}
+  const V=vis();$('#cnt').textContent=V.length+' תלמידות';
+  if(!V.length){$('#tb').innerHTML='<tr><td colspan="10" style="text-align:center;padding:30px"><b>אין נתונים להצגה</b><br><small>פתחי ⚙️ הגדרות והעלי קובץ אב (ואחר כך קובץ בחירות)</small></td></tr>';return}
+  $('#tb').innerHTML=V.map(({r,s})=>{const st=status(r),sc=score(r),sp=spanOf(r),pn=r.partners.map(p=>S.students[p]?S.students[p].name:'').filter(Boolean).join(', ')||'—';
+    return `<tr><td><span class="idb">${r.id}</span></td><td><b>${esc(s.name)}</b></td><td>${esc(s.cls)}</td><td style="direction:ltr">${esc(s.phone)}</td>
+    <td>${ROLES[r.role]||'ללא תפקיד'}</td><td>${periodTxt(r)}</td><td>${r.role==1||r.role==2?esc(pn):'—'}${r.mut?' <span style="color:#16a34a;font-weight:700">(הדדי)</span>':''}</td>
+    <td><span class="pill ${STL[st][1]}">${STL[st][0]}</span></td>
+    <td>${sp?`<small>${sc}/${sp} ימים</small><div class="pb"><i style="width:${sc/sp*100}%"></i></div>`:''}${cellsHtml(r)}</td>
+    <td><button class="btn soft" data-em="${r.id}" style="padding:5px 9px">✏️ שינוי</button></td></tr>`}).join('')}
 
-/* ---------- אירועים ---------- */
-$('#dov').innerHTML+=DAYS.map((d,i)=>`<option value="${i}">יום ${d}</option>`).join('');
-$('#cw').value=S.curWeek;$('#dov').value=S.dayOv;
-$('#fm').onchange=async e=>{loadMaster(await rd(e.target.files[0]));build();render()};
-$('#fc').onchange=async e=>{loadChoices(await rd(e.target.files[0]));build();render()};
-$('#cw').onchange=e=>{S.curWeek=+e.target.value||1;save();render()};
-$('#dov').onchange=e=>{S.dayOv=e.target.value;save();render()};
-['q','fc1','fr','fs','so'].forEach(i=>$('#'+i).oninput=render);
-$('#chz').onchange=e=>{S.cfg.chaz[e.target.dataset.c]=e.target.value.replace(/[^\d,]/g,'');build();render()};
-document.querySelectorAll('[data-k]').forEach(b=>b.onclick=()=>{$('#ivr').textContent='🔊 '+ivr($('#ivid').value,b.dataset.k)});
-$('#clr').onclick=()=>{if(confirm('למחוק את כל הנתונים?')){RESET=1;S={students:{},rows:[],cfg:{chaz:{}},rep:{},log:[],curWeek:1,dayOv:''};save();render()}};
-document.addEventListener('click',e=>{const c=e.target.closest('.d');
-  if(c){const r=S.rows.find(x=>x.id===c.dataset.id),k=rk(r),i=+c.dataset.i;S.rep[k]=S.rep[k]||[];const o=S.rep[k][i]=S.rep[k][i]||{};
-    const nx={'':'done',done:'missed',missed:'free',free:''}[o.t||''];o.t=nx||null;log(r.id,'אישור מורה ליום '+DAYS[i]+': '+({done:'בוצע',missed:'לא בוצע',free:'יום חופשי'}[nx]||'בוטל'));save();render();return}
-  const l=e.target.closest('[data-lg]');if(l){const id=l.dataset.lg;$('#mdc').innerHTML=`<h3>יומן אירועים - ${esc(S.students[id].name)}</h3>`+(S.log.filter(x=>x.id===id).reverse().map(x=>`<p><small>${x.t}</small><br>${esc(x.msg)}</p>`).join('')||'<p>אין אירועים</p>')+'<button onclick="$(\'#md\').style.display=\'none\'">סגור</button>';$('#md').style.display='flex';return}
-  if(e.target.id==='md')e.target.style.display='none'});
+/* ---------- סימון במחשב (ללא לחיצה בטעות: חלון אישור) ---------- */
+let PCK=null;
+document.addEventListener('click',e=>{const c=e.target.closest('.d[data-k]');if(c){PCK={k:c.dataset.k,i:+c.dataset.i};
+  const r=S.rows.find(x=>rk(x)===PCK.k);const abs=r?(r.from-1)*6+PCK.i:0;
+  $('#pct').innerHTML=`<b>${r?esc(S.students[r.id].name):''}</b> · ${r?SLOTS[r.from-1+Math.floor(PCK.i/6)]:''} · יום ${DAYS[PCK.i%6]}`;
+  $('#pcb').innerHTML=`<button class="btn grn" data-pv="full">✔ ביצעה מלא</button><button class="btn soft" data-pv="partial">◐ חלקי</button><button class="btn dng" data-pv="missed">✘ לא ביצעה</button><button class="btn soft" data-pv="free">חופש</button><button class="btn soft" data-pv="">בטל עדכון מחשב</button>`;
+  $('#pcm').style.display='flex';return}
+  const b=e.target.closest('[data-pv]');if(b&&PCK){const k=PCK.k;S.rep[k]=S.rep[k]||[];const v=b.dataset.pv;S.rep[k][PCK.i]=v||undefined;
+    S.log.push({t:nowIL(),id:k.split('|')[0],msg:'עדכון במחשב: '+(v?FVAL[v]:'בוטל')});$('#pcm').style.display='none';render();save();return}
+  const em=e.target.closest('[data-em]');if(em){openEdit(em.dataset.em);return}
+  const x=e.target.closest('[data-close]');if(x){x.closest('.modal').style.display='none'}
+  if(e.target.classList&&e.target.classList.contains('modal'))e.target.style.display='none'});
 
-$('#xl').onclick=()=>{if(typeof XLSX==='undefined'){alert('ספריית XLSX לא נטענה (נדרש חיבור לאינטרנט)');return}
-  const sy={done:'✔',missed:'✘',free:'חופשי'};
-  const data=sorted().map(({r,s})=>{const a=arr(r),vs=DAYS.map((_,i)=>val(a[i]));
-    return {'תעודת זהות':r.id,'שם התלמידה':s.name,'כיתה':s.cls,'טלפון':s.phone,'תפקיד':ROLES[r.role],'שבוע':r.week||'',
-    'שותפה':r.partners.map(p=>S.students[p].name).join(', '),'זיווג הדדי (P052)':r.mut?'כן':'לא','סטטוס דיווח':ST[status(r)][0],
-    'פירוט ימים (א-ו)':vs.map((v,i)=>DAYS[i]+':'+(sy[v]||'-')).join(' '),'ימים חופשיים':vs.filter(v=>v==='free').length,'ציון מספרי משוקלל':score(r)+'/6'}});
-  const ws=XLSX.utils.json_to_sheet(data),wb=XLSX.utils.book_new();wb.Workbook={Views:[{RTL:true}]};XLSX.utils.book_append_sheet(wb,ws,'תורנויות');XLSX.writeFile(wb,'tornuyot.xlsx')};
+/* ---------- עריכה: תפקיד/שבוע/החלפה ---------- */
+function openEdit(id){const s=S.students[id],r=S.rows.find(x=>x.id===id)||{role:s.role,from:0,to:0};
+  const isM=+r.role===2;
+  $('#emc').innerHTML=`<div class="mh"><h2>✏️ ${esc(s.name)}</h2><button class="x" data-close>✕</button></div>
+  <p>${ROLES[r.role]||''} · ${r.from?periodTxt(r).replace(/<[^>]+>/g,''):'ממתינה'}</p>
+  <section><h3>שינוי תפקיד / תקופה</h3><div class="hb">
+    <select id="er">${[1,2,3,4].map(k=>`<option value="${k}" ${k==r.role?'selected':''}>${ROLES[k]}</option>`).join('')}</select>
+    <select id="ew">${SLOTS.map((t,i)=>`<option value="${i+1}" ${i+1===r.from&&!isM?'selected':''}>שבוע ${i+1} - ${t}</option>`).join('')}</select>
+    <select id="em2">${MONTHS.map((m,i)=>`<option value="${i+1}" ${MONTHS[i].f===r.from?'selected':''}>חודש ${m.n}</option>`).join('')}</select>
+  </div>
+  <p><label><input type="checkbox" id="esw" checked> אם השבוע/החודש תפוס בכיתה, להחליף עם מי ששובצה שם</label></p>
+  <div class="hb"><button class="btn pri" id="eok">שמור</button><button class="btn soft" id="eun">↩️ החזר לשיבוץ אוטומטי</button></div></section>`;
+  const sync=()=>{$('#ew').parentElement;$('#ew').style.display=$('#er').value==='2'?'none':'';$('#em2').style.display=$('#er').value==='2'?'':'none'};
+  $('#er').onchange=sync;sync();
+  $('#eok').onclick=()=>{const nr=+$('#er').value,nf=nr===2?MONTHS[+$('#em2').value-1].f:+$('#ew').value,old=r;
+    if(nr===4||nr===3){S.pre[id]={role:nr}}
+    else{const key=nr===2?'month':'week';
+      S.pre[id]={role:nr,[key]:nr===2?+$('#em2').value:nf,done:false};
+      if($('#esw').checked&&(nr===1||nr===2)){const occ=S.rows.find(x=>x.id!==id&&S.students[x.id].cls===s.cls&&x.role===nr&&x.from===nf);
+        if(occ&&old.from){const oldKey=nr===2?'month':'week';S.pre[occ.id]={role:nr,[oldKey]:nr===2?(MONTHS.findIndex(m=>m.f===old.from)+1):old.from}}}}
+    S.log.push({t:nowIL(),id,msg:'שינוי ידני: '+ROLES[nr]});$('#em').style.display='none';apply(true)};
+  $('#eun').onclick=()=>{delete S.pre[id];$('#em').style.display='none';apply(true)};
+  $('#em').style.display='flex'}
 
-$('#demo').onclick=()=>{const N=['שרה','רבקה','לאה','רחל','מרים','חנה','דינה','אסתר','יעל','נעמי','תמר','שירה'],ST2={};
-  ['ט\'1','ט\'2'].forEach((c,k)=>N.forEach((n,i)=>{const id=String(100000000+k*100+i).padStart(9,'0');
-    ST2[id]={id,name:n+' '+['כהן','לוי','מזרחי','פרידמן'][(i+k)%4],cls:c,role:[1,1,1,1,1,1,1,2,3,4,4,0][i],phone:'05'+(10000000+k*100+i),pair:''}}));
-  ST2['100000000'].pair='100000001';ST2['100000001'].pair='100000000';ST2['100000002'].pair='100000003'; // הדדי + חד-צדדי
-  S={students:ST2,rows:[],cfg:{chaz:{"ט'1":1,"ט'2":2}},rep:{},log:[],curWeek:1,dayOv:''};build();render();$('#msg').textContent='נטענו נתוני דוגמה'};
-
+/* ---------- סימון מוקדם ---------- */
 function pmR(){const q=$('#pq').value.trim(),c=$('#pc').value;
   $('#pt').innerHTML=Object.values(S.students).filter(s=>(!q||s.name.includes(q)||s.id.includes(q))&&(!c||s.cls===c)).sort((a,b)=>hc(a.cls,b.cls)||hc(a.name,b.name)).map(s=>{const p=S.pre[s.id]||{};
-    return `<tr><td><b>${esc(s.name)}</b></td><td>${esc(s.cls)}</td><td><small>${ROLES[s.role]}</small></td>
+    const wk=`<select data-pw="${s.id}"><option value="">-</option>${SLOTS.map((t,i)=>`<option value="${i+1}" ${p.week==i+1?'selected':''}>${i+1} ${t}</option>`).join('')}</select>`;
+    const mo=`<select data-pm="${s.id}"><option value="">-</option>${MONTHS.map((m,i)=>`<option value="${i+1}" ${p.month==i+1?'selected':''}>${m.n}</option>`).join('')}</select>`;
+    return `<tr><td><b>${esc(s.name)}</b></td><td>${esc(s.cls)}</td>
     <td><select data-pr="${s.id}"><option value="">-</option>${[1,2,3,4].map(r=>`<option value="${r}" ${p.role==r?'selected':''}>${ROLES[r]}</option>`).join('')}</select></td>
-    <td><input type="number" min="1" data-pw="${s.id}" value="${p.week||''}" placeholder="${S.curWeek}" style="width:64px"></td></tr>`}).join('')}
-$('#pre').onclick=()=>{S.pre=S.pre||{};$('#pc').innerHTML='<option value="">כל הכיתות</option>'+[...new Set(Object.values(S.students).map(s=>s.cls))].sort(hc).map(c=>`<option>${esc(c)}</option>`).join('');pmR();$('#pm').style.display='flex'};
+    <td>${wk}${mo}</td><td><input type="checkbox" data-pd="${s.id}" ${p.done?'checked':''}></td></tr>`}).join('')}
+$('#pre').onclick=()=>{$('#pst').textContent=S.cfg.locked?'מצב: משובץ (שינויים מתעדכנים מיד)':'מצב: סימון - השיבוץ עוד לא רץ';$('#pc').innerHTML='<option value="">כל הכיתות</option>'+[...new Set(Object.values(S.students).map(s=>s.cls))].sort(hc).map(c=>`<option>${esc(c)}</option>`).join('');pmR();$('#pm').style.display='flex'};
 $('#pq').oninput=pmR;$('#pc').onchange=pmR;
-$('#pt').onchange=e=>{const t=e.target,id=t.dataset.pr||t.dataset.pw;if(!id)return;S.pre=S.pre||{};
-  if(t.dataset.pr){if(!t.value)delete S.pre[id];else S.pre[id]=Object.assign(S.pre[id]||{},{role:+t.value})}else if(S.pre[id])S.pre[id].week=+t.value||0;build();render()};
-$('#pm').onclick=e=>{if(e.target.id==='pm'||e.target.hasAttribute('data-close'))$('#pm').style.display='none'};
-$('#set').onclick=()=>$('#sm').style.display='flex';
-$('#sm').onclick=e=>{if(e.target.id==='sm'||e.target.hasAttribute('data-close'))$('#sm').style.display='none'};
-$('#run').onclick=()=>{build();render();$('#msg').textContent='✔ בוצע מיון, זיווג הדדי ושיבוץ'};
-async function getWb(base){for(const e of['xlsx','xls','csv']){try{const r=await fetch(base+'.'+e+'?t='+Date.now(),{cache:'no-store'});
-  if(r.ok){const wb=XLSX.read(await r.arrayBuffer(),{type:'array'}),ws=wb.Sheets[wb.SheetNames[0]];if(ws&&ws['!ref'])return XLSX.utils.sheet_to_json(ws,{header:1,raw:true,defval:''})}}catch(x){}}return null}
-async function fromFolder(silent){const n1=($('#fnm1').value||'master').trim(),n2=($('#fnm2').value||'choices').trim();
-  try{localStorage.setItem('fnm1',n1);localStorage.setItem('fnm2',n2)}catch(e){}
-  const _a=window.alert;if(silent)window.alert=()=>{};
-  try{const A=await getWb(n1);if(!A){if(!silent)$('#msg').textContent='לא נמצא קובץ אב בתיקייה ('+n1+'.xlsx)';return}
-    loadMaster(A);const B=await getWb(n2);if(B)loadChoices(B);build();render();
-    $('#msg').textContent='נטען מהתיקייה: '+Object.keys(S.students).length+' תלמידות'+(B?'':' (קובץ בחירות לא נמצא)')}
-  finally{window.alert=_a}}
-$('#ffd').onclick=()=>fromFolder(false);
-async function connect(){API=normApi($('#apiu').value);PASS=$('#apip').value;
-  if(!API){conn(false,'חסרה כתובת');return}
-  for(let i=1;i<=6;i++){
-    try{$('#cns').textContent=i===1?'מתחבר...':'השרת מתעורר (שרת חינמי ישן), מנסה שוב '+i+'/6...';const m=await api('GET');
-      localStorage.setItem('api',API);localStorage.setItem('pw',PASS);if(m&&m.students)S=m;
-      $('#cw').value=S.curWeek;$('#dov').value=S.dayOv;render();
-      conn(true,'בשרת יש כרגע '+Object.keys(S.students).length+' תלמידות ו-'+S.rows.length+' שיבוצים');await fromFolder(true);return}
-    catch(e){if(e.message==='auth'){conn(false,'הסיסמה שגויה');return}
-      if(i===6){conn(false,'אין תקשורת עם '+API+' ('+e.message+'). אם /healthz נפתח, זו חסימת CORS: עדכן את server.js או פתח את הדף מכתובת השרת ברנדר');return}
-      await new Promise(r=>setTimeout(r,8000))}}}
+$('#pt').onchange=e=>{const t=e.target,id=t.dataset.pr||t.dataset.pw||t.dataset.pm||t.dataset.pd;if(!id)return;const p=S.pre[id]||{};
+  if(t.dataset.pd)p.done=t.checked;else if(t.dataset.pr){p.role=+t.value||undefined;}else if(t.dataset.pw)p.week=+t.value||undefined;else if(t.dataset.pm)p.month=+t.value||undefined;
+  if(!p.role&&!p.done)delete S.pre[id];else S.pre[id]=p;apply(true);pmR()};
+
+/* ---------- מפת שבוע ---------- */
+function openMap(){const w=curSlot();
+  const opt=SLOTS.map((t,i)=>`<option value="${i+1}" ${i+1===w?'selected':''}>${i+1} - ${t}</option>`).join('');
+  const body=()=>{const sl=+$('#mws').value,m=MONTHS.find(x=>sl>=x.f&&sl<=x.t);
+    const by={};S.rows.forEach(r=>{const s=S.students[r.id];if(!s)return;by[s.cls]=by[s.cls]||{p:[],a:[],y:[],c:[]};const nm=s.name;
+      if(r.role==1&&r.from===sl)by[s.cls].p.push(nm);
+      if(r.role==2&&m&&r.from===m.f&&!by[s.cls].a.includes(nm))by[s.cls].a.push(nm);
+      if(r.role==3)by[s.cls].y.push(nm);if(r.role==4)by[s.cls].c.push(nm)});
+    return `<table><thead><tr><th>כיתה</th><th>תורנית כיתה (שבוע ${sl})</th><th>תורנית ארון${m?' ('+m.n+')':''}</th><th>יומן</th><th>חזניות</th></tr></thead><tbody>
+    ${Object.keys(by).sort(hc).map(c=>{const x=by[c];return `<tr><td><b>${esc(c)}</b></td><td>${esc(x.p.join(' · '))||'—'}</td><td>${esc(x.a.join(' · '))||'—'}</td><td>${esc(x.y.join(' · '))||'—'}</td><td>${esc(x.c.join(' · '))||'—'}</td></tr>`}).join('')}</tbody></table>`};
+  $('#mmc').innerHTML=`<div class="mh"><h2>🗺️ מפת שבוע - כל התיכון</h2><button class="x" data-close>✕</button></div>
+  <div class="hb"><select id="mws">${opt}</select></div><div id="mtb" style="margin-top:10px">${body()}</div>`;
+  $('#mws').onchange=()=>{$('#mtb').innerHTML=body()};$('#mm').style.display='flex'}
+$('#map').onclick=openMap;
+
+/* ---------- אקסל ---------- */
+function xlOut(wb,name){XLSX.writeFile(wb,name)}
+$('#xl').onclick=()=>{if(typeof XLSX==='undefined'){alert('ספריית האקסל לא נטענה');return}
+  const wb=XLSX.utils.book_new();const byC={};Object.values(S.students).forEach(s=>(byC[s.cls]=byC[s.cls]||[]).push(s));
+  const names=ids=>ids.map(i=>S.students[i]?S.students[i].name:'').filter(Boolean);
+  Object.keys(byC).sort(hc).forEach(c=>{const R=S.rows.filter(r=>S.students[r.id]&&S.students[r.id].cls===c);const aoa=[[c],[],['חזניות תפילה קבועות'],...R.filter(r=>r.role==4).map(r=>[S.students[r.id].name]),[],
+    ['תורנית יומן קבועה'],...R.filter(r=>r.role==3).map(r=>[S.students[r.id].name]),[],['תורניות ארון חודשיות']];
+    MONTHS.forEach(m=>{const ids=R.filter(r=>r.role==2&&r.from===m.f).map(r=>r.id);aoa.push([m.n,...names(ids)])});
+    aoa.push([],['תורניות כיתה שבועיות']);
+    for(let w=1;w<=NS;w++){const ids=R.filter(r=>r.role==1&&r.from===w).map(r=>r.id);aoa.push([SLOTS[w-1],...names(ids)])}
+    const ws=XLSX.utils.aoa_to_sheet(aoa);ws['!rtl']=true;XLSX.utils.book_append_sheet(wb,ws,c.replace(/[\\/?*\[\]:]/g,'').slice(0,31)||'כיתה')});
+  XLSX.writeFile(wb,'tornuyot-classes.xlsx')};
+$('#xm').onclick=()=>{if(typeof XLSX==='undefined'){alert('ספריית האקסל לא נטענה');return}
+  const data=vis().map(({r,s})=>{const sp=spanOf(r),a=[];for(let i=0;i<sp;i++){const x=valOf(r,i);a.push(x?FVAL[x.v]:'-')}
+    return {'כיתה':s.cls,'שם התלמידה':s.name,'ת״ז':r.id,'תפקיד':ROLES[r.role],'תקופה':r.from?periodTxt(r).replace(/<[^>]+>/g,''):'','ציון':score(r),'מתוך':sp,'פירוט':a.join(' | ')}});
+  const ws=XLSX.utils.json_to_sheet(data),wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'מדדים');XLSX.writeFile(wb,'tornuyot-metrics.xlsx')};
+
+/* ---------- כלים וחיבור ---------- */
+function chazList(){const cls=[...new Set(Object.values(S.students).map(s=>s.cls))].sort(hc);S.cfg.chaz=S.cfg.chaz||{};
+  $('#chzl').innerHTML=cls.length?cls.map(c=>`<label style="display:inline-block;margin:4px 12px 4px 0">${esc(c)}: <input type="number" min="0" max="20" data-chz="${esc(c)}" value="${S.cfg.chaz[c]||''}" style="width:64px"></label>`).join(''):'<small>טענו קובץ אב קודם</small>'}
+document.addEventListener('change',e=>{const c=e.target.dataset&&e.target.dataset.chz;if(c){S.cfg.chaz[c]=+e.target.value||0;save();render()}});
+$('#set').onclick=()=>{chazList();$('#sm').style.display='flex'};
 $('#cbtn').onclick=connect;
-(async()=>{$('#apiu').value=API;$('#apip').value=PASS;$('#fnm1').value=localStorage.getItem('fnm1')||'master';$('#fnm2').value=localStorage.getItem('fnm2')||'choices';
-  if(API&&PASS)await connect();else{conn(false,'הזן כתובת וסיסמה');$('#sm').style.display='flex'}
-  $('#cw').value=S.curWeek;$('#dov').value=S.dayOv;render();
-  setInterval(async()=>{if(document.activeElement&&document.activeElement.matches('input,select'))return;
-    try{const m=await api('GET');if(m&&m.students){S=m;render()}}catch(e){}},30000)})();
-/* ===== חיבור ל-API ימות המשיח =====
- דף HTML סטטי אינו יכול לקבל קריאות נכנסות מהמרכזייה. הדרך: שרת קטן (Render) שמקבל GET מימות המשיח
- (ApiEnterID / ivr_key), מאמת שיבוץ ומחזיר "id_list_message=t-..." ושומר דיווחים בקובץ ב-GitHub;
- הדף ימשוך אותם וישלח ל-ivrReport(id,key). כאן הלוגיקה והאימות כבר ממומשים בפונקציה ivr(). */
+$('#run').onclick=lockAndBuild;
+$('#lockb').onclick=lockAndBuild;
+$('#unlockb').onclick=()=>{S.cfg.locked=false;save();$('#pst').textContent='מצב: סימון - השיבוץ עוד לא רץ';render()};
+$('#cur').onchange=e=>{S.cfg.curSlot=+e.target.value;apply(true)};
+$('#tzon').onchange=()=>{S.cfg.tz=Object.assign({},S.cfg.tz,{on:$('#tzon').checked});save()};
+$('#tzt').onchange=()=>{S.cfg.tz=Object.assign({},S.cfg.tz,{time:$('#tzt').value});save()};
+['q','fc','fr','fs','so'].forEach(i=>$('#'+i).oninput=render);
+$('#clr').onclick=()=>{if(confirm('למחוק את כל הנתונים?')){S={students:{},pre:{},cfg:{curSlot:1},rows:[],rep:{},log:[]};save();render()}};
+document.addEventListener('keydown',e=>{if(e.key==='Escape')document.querySelectorAll('.modal').forEach(m=>m.style.display='none')});
+document.querySelectorAll('.modal').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)m.style.display='none'}));
+
+(async()=>{SRV=localStorage.getItem('srv')||(location.protocol.startsWith('http')?location.origin:'');PASS=localStorage.getItem('pw')||'';
+  $('#apiu').value=localStorage.getItem('srv')||'';$('#apip').value=PASS;
+  if(!PASS){$('#sm').style.display='flex';conn(false,'הזיני סיסמת מנהל');render();return}
+  await connect();render();
+  setInterval(async()=>{if(!PASS||$('#sm').style.display==='flex')return;try{if(dirty){await loadReports()}else{await loadAll()}render()}catch(e){}},30000)})();
 </script>
 </body>
 </html>
