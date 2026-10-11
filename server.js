@@ -1,9 +1,8 @@
 import express from 'express';
 import { YemotRouter } from 'yemot-router2';
 
-const { GITHUB_TOKEN, DATA_REPO, IVR_SECRET = 'ivr', TEACHER_PASS = '12369', ADMIN_PASSWORD, PORT = 3000, YEMOT_TOKEN, CRON_KEY, CALLER_ID = '', TZ_TIMEOUT = '9' } = process.env;
+const { GITHUB_TOKEN, DATA_REPO, IVR_SECRET = 'ivr', TEACHER_PASS = '12369', PORT = 3000, YEMOT_TOKEN, CRON_KEY, CALLER_ID = '', TZ_TIMEOUT = '9' } = process.env;
 if (!GITHUB_TOKEN || !DATA_REPO) { console.error('Missing GITHUB_TOKEN or DATA_REPO'); process.exit(1); }
-if (!ADMIN_PASSWORD) { console.error('Missing ADMIN_PASSWORD'); process.exit(1); }
 if (!YEMOT_TOKEN || !CRON_KEY) console.warn('YEMOT_TOKEN or CRON_KEY missing - daily tzintuk disabled');
 
 // state.json נכתב מהדף. reports.json נכתב רק מהשרת (דיווחי תלמידות ומורות).
@@ -41,30 +40,7 @@ const updateReports = (mutate, msg) => locked(async () => {
 
 const app = express();
 app.get('/healthz', (_, res) => res.send('ok'));
-app.use(express.static('public'));
-
-// ---------- API לדף הניהול (הטוקן של גיטאב נשאר בשרת בלבד) ----------
-const authed = (req, res, next) => (req.get('x-pass') === ADMIN_PASSWORD ? next() : res.status(401).json({ error: 'auth' }));
-app.get('/api/data', authed, async (_req, res) => {
-  try {
-    const st = await ghRead('state.json'), rp = await ghRead('reports.json');
-    res.json({ state: st?.data || null, reports: rp?.data || null });
-  } catch (e) { res.status(502).json({ error: e.message }); }
-});
-app.put('/api/state', authed, express.json({ limit: '10mb' }), async (req, res) => {
-  const body = req.body;
-  if (!body || typeof body !== 'object' || !body.students || !body.rows) return res.status(400).json({ error: 'bad state' });
-  try {
-    await locked(async () => {
-      for (let i = 0; i < 3; i++) {
-        try { const cur = await ghRead('state.json'); await ghWrite('state.json', body, cur?.sha); return; }
-        catch (e) { if (i === 2) throw e; }
-      }
-    });
-    cache = { t: 0, d: null };
-    res.json({ ok: true });
-  } catch (e) { res.status(502).json({ error: e.message }); }
-});
+app.get('/', (_, res) => res.send('tornuyot server is running'));
 
 const say = t => [{ type: 'text', data: t }];
 const bye = (call, m) => { call.id_list_message(say(m), { prependToNextAction: true }); return call.hangup(); };
@@ -120,7 +96,7 @@ teacher.get('/', async call => {
     if (!who.length || d < 0) return bye(call, 'אין תורנית משובצת לכיתה זו היום');
     await updateReports(R => {
       for (const x of who) { const k = x.id + '|' + x.from, pos = (cur - x.from) * 6 + d;
-        R.rep[k] = R.rep[k] || []; R.rep[k][pos] = Object.assign(R.rep[k][pos] || {}, { tch: Object.assign((R.rep[k][pos] || {}).tch || {}, { [ph]: bad }) }); }
+        R.rep[k] = R.rep[k] || []; R.rep[k][pos] = Object.assign(R.rep[k][pos] || {}, { tch: Object.assign((R.rep[k][pos] || {}).tch || {}, { [ph]: { v: bad, a: ans, by: cls, at: tsIL() } }) }); }
     }, { msg: `דיווח מורה לכיתה ${cls} (${ph === 'mid' ? 'מהלך היום' : 'סוף היום'}): ${bad === 'bad' ? '⚠ הרוב לא תקין' : 'תקין'} - ${who.map(x => st.students[x.id].name).join(', ')}` });
     return bye(call, bad === 'bad' ? 'הדיווח נקלט, סומן כלא תקין' : 'הדיווח נקלט, תודה');
   } catch (e) { console.error(e); return bye(call, 'אירעה שגיאה, נסי שוב מאוחר יותר'); }
