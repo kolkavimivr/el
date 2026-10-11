@@ -1,9 +1,12 @@
-# שרת שלוחות - תורנויות
+# שרת תורנויות
 משתני סביבה ברנדר:
 - GITHUB_TOKEN - טוקן עם Contents קריאה+כתיבה לריפו הנתונים בלבד
 - DATA_REPO - למשל kolkavimivr/el-data
-- IVR_SECRET - מחרוזת סודית לכתובת
-- TEACHER_PASS - סיסמת המורה (ברירת מחדל 12369, מומלץ לשנות)
+- ADMIN_PASSWORD - סיסמת הכניסה לדף הניהול מכל דפדפן
+- IVR_SECRET - מחרוזת סודית לכתובת השלוחות
+- TEACHER_PASS - סיסמת המורה (ברירת מחדל 12369)
+- YEMOT_TOKEN, CRON_KEY, CALLER_ID (אופציונלי), TZ_TIMEOUT (אופציונלי) - לצינתוק היומי
 
-שלוחת תלמידה (API): https://<השירות>.onrender.com/ivr/<IVR_SECRET>
-שלוחת מורה (API): https://<השירות>.onrender.com/ivr/<IVR_SECRET>/teacher
+דף הניהול: https://<השירות>.onrender.com/
+שלוחת תלמידה: https://<השירות>.onrender.com/ivr/<IVR_SECRET>
+שלוחת מורה: https://<השירות>.onrender.com/ivr/<IVR_SECRET>/teacher

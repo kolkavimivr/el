@@ -1,8 +1,10 @@
 import express from 'express';
 import { YemotRouter } from 'yemot-router2';
 
-const { GITHUB_TOKEN, DATA_REPO, IVR_SECRET = 'ivr', TEACHER_PASS = '12369', PORT = 3000 } = process.env;
+const { GITHUB_TOKEN, DATA_REPO, IVR_SECRET = 'ivr', TEACHER_PASS = '12369', ADMIN_PASSWORD, PORT = 3000, YEMOT_TOKEN, CRON_KEY, CALLER_ID = '', TZ_TIMEOUT = '9' } = process.env;
 if (!GITHUB_TOKEN || !DATA_REPO) { console.error('Missing GITHUB_TOKEN or DATA_REPO'); process.exit(1); }
+if (!ADMIN_PASSWORD) { console.error('Missing ADMIN_PASSWORD'); process.exit(1); }
+if (!YEMOT_TOKEN || !CRON_KEY) console.warn('YEMOT_TOKEN or CRON_KEY missing - daily tzintuk disabled');
 
 // state.json נכתב מהדף. reports.json נכתב רק מהשרת (דיווחי תלמידות ומורות).
 const H = { Authorization: 'Bearer ' + GITHUB_TOKEN, Accept: 'application/vnd.github+json', 'User-Agent': 'tornuyot' };
@@ -39,7 +41,30 @@ const updateReports = (mutate, msg) => locked(async () => {
 
 const app = express();
 app.get('/healthz', (_, res) => res.send('ok'));
-app.get('/', (_, res) => res.send('tornuyot server is running'));
+app.use(express.static('public'));
+
+// ---------- API לדף הניהול (הטוקן של גיטאב נשאר בשרת בלבד) ----------
+const authed = (req, res, next) => (req.get('x-pass') === ADMIN_PASSWORD ? next() : res.status(401).json({ error: 'auth' }));
+app.get('/api/data', authed, async (_req, res) => {
+  try {
+    const st = await ghRead('state.json'), rp = await ghRead('reports.json');
+    res.json({ state: st?.data || null, reports: rp?.data || null });
+  } catch (e) { res.status(502).json({ error: e.message }); }
+});
+app.put('/api/state', authed, express.json({ limit: '10mb' }), async (req, res) => {
+  const body = req.body;
+  if (!body || typeof body !== 'object' || !body.students || !body.rows) return res.status(400).json({ error: 'bad state' });
+  try {
+    await locked(async () => {
+      for (let i = 0; i < 3; i++) {
+        try { const cur = await ghRead('state.json'); await ghWrite('state.json', body, cur?.sha); return; }
+        catch (e) { if (i === 2) throw e; }
+      }
+    });
+    cache = { t: 0, d: null };
+    res.json({ ok: true });
+  } catch (e) { res.status(502).json({ error: e.message }); }
+});
 
 const say = t => [{ type: 'text', data: t }];
 const bye = (call, m) => { call.id_list_message(say(m), { prependToNextAction: true }); return call.hangup(); };
@@ -59,7 +84,7 @@ student.get('/', async call => {
       if (st?.students?.[id]) await updateReports(R => {}, { id, msg: 'דיווח טלפוני נדחה - לא משובצת בתקופה זו' });
       return bye(call, 'אינך משובצת לתורנות בתקופה זו');
     }
-    const key = await call.read(say('הקישי אחד אם ביצעת את התפקיד במלואו, שתיים אם ביצעת חלקית, שלוש אם לא ביצעת, ארבע ליום חופש'), 'tap',
+    const key = await call.read(say('הקישי 1 אם ביצעת את התפקיד במלואו, 2 אם ביצעת חלקית, 3 אם לא ביצעת, 4 ליום חופש'), 'tap',
       { val_name: 'KEY', min_digits: 1, max_digits: 1, sec_wait: 8, digits_allowed: ['1', '2', '3', '4'], amount_attempts: 3 });
     const val = SKEYS[key], k = row.id + '|' + row.from, pos = (cur - row.from) * 6 + d;
     await updateReports(R => { R.rep[k] = R.rep[k] || []; R.rep[k][pos] = Object.assign(R.rep[k][pos] || {}, { stu: val }); },
@@ -99,6 +124,37 @@ teacher.get('/', async call => {
     }, { msg: `דיווח מורה לכיתה ${cls} (${ph === 'mid' ? 'מהלך היום' : 'סוף היום'}): ${bad === 'bad' ? '⚠ הרוב לא תקין' : 'תקין'} - ${who.map(x => st.students[x.id].name).join(', ')}` });
     return bye(call, bad === 'bad' ? 'הדיווח נקלט, סומן כלא תקין' : 'הדיווח נקלט, תודה');
   } catch (e) { console.error(e); return bye(call, 'אירעה שגיאה, נסי שוב מאוחר יותר'); }
+});
+
+
+// ---------- צינתוק יומי לתורניות (בתשלום, RunTzintuk) ----------
+// נקרא כל כמה דקות מ-cron חיצוני (למשל cron-job.org). שולח פעם ביום, החל משעת ההגדרה.
+const hhmmIL = () => new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Asia/Jerusalem' }).format(new Date());
+const dateIL = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jerusalem' }).format(new Date());
+async function sendTzDaily(force) {
+  const st = await state(), tz = st?.cfg?.tz || {};
+  if (!force && !tz.on) return { skipped: 'off' };
+  if (!force && dayIL() < 0) return { skipped: 'shabbat' };
+  const now = hhmmIL(), today = dateIL();
+  if (!force && now < (tz.time || '07:30')) return { skipped: 'not yet', now };
+  const R = (await ghRead('reports.json'))?.data || { rep: {}, log: [] };
+  if (!force && R.tzDate === today) return { skipped: 'already sent today' };
+  const cur = +st?.cfg?.curSlot || 1;
+  const phones = [...new Set((st?.rows || []).filter(x => x.role !== 4 && x.from >= 1 && x.from <= cur && cur <= x.to)
+    .map(x => st.students?.[x.id]?.phone).filter(p => p && p.length >= 9))];
+  if (!phones.length) { await updateReports(R2 => { R2.tzDate = today; }, { msg: 'צינתוק יומי: אין נמענות לשבוע זה' }); return { sent: 0 }; }
+  const url = 'https://www.call2all.co.il/ym/api/RunTzintuk?token=' + encodeURIComponent(YEMOT_TOKEN) +
+    '&callerId=' + encodeURIComponent(CALLER_ID) + '&TzintukTimeOut=' + encodeURIComponent(TZ_TIMEOUT) + '&phones=' + phones.join(':');
+  const r = await fetch(url); const j = await r.json().catch(() => ({}));
+  const ok = j.responseStatus === 'OK';
+  await updateReports(R2 => { R2.tzDate = today; }, { msg: `צינתוק יומי ל-${phones.length} נמענות: ${ok ? 'נשלח' : 'שגיאה ' + (j.message || j.responseStatus || r.status)}` });
+  return { sent: phones.length, ok };
+}
+app.get('/tz/run', async (req, res) => {
+  if (!CRON_KEY || req.query.key !== CRON_KEY) return res.status(401).send('unauthorized');
+  if (!YEMOT_TOKEN) return res.status(500).json({ error: 'YEMOT_TOKEN missing' });
+  try { res.json(await sendTzDaily(req.query.force === '1')); }
+  catch (e) { console.error(e); res.status(500).json({ error: e.message }); }
 });
 
 app.use('/ivr/' + IVR_SECRET + '/teacher', teacher);
