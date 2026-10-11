@@ -59,7 +59,7 @@ student.get('/', async call => {
       if (st?.students?.[id]) await updateReports(R => {}, { id, msg: 'דיווח טלפוני נדחה - לא משובצת בתקופה זו' });
       return bye(call, 'אינך משובצת לתורנות בתקופה זו');
     }
-    const key = await call.read(say('הקישי 1 אם ביצעת את התפקיד במלואו, 2 אם ביצעת חלקית, 3 אם לא ביצעת, 4 ליום חופש'), 'tap',
+    const key = await call.read(say('הקישי אחד אם ביצעת את התפקיד במלואו, שתיים אם ביצעת חלקית, שלוש אם לא ביצעת, ארבע ליום חופש'), 'tap',
       { val_name: 'KEY', min_digits: 1, max_digits: 1, sec_wait: 8, digits_allowed: ['1', '2', '3', '4'], amount_attempts: 3 });
     const val = SKEYS[key], k = row.id + '|' + row.from, pos = (cur - row.from) * 6 + d;
     await updateReports(R => { R.rep[k] = R.rep[k] || []; R.rep[k][pos] = Object.assign(R.rep[k][pos] || {}, { stu: val }); },
