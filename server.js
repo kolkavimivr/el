@@ -90,11 +90,11 @@ teacher.get('/', async call => {
     if (pass !== TEACHER_PASS) return bye(call, 'הסיסמה שגויה');
     let note = '';
     for (;;) { // רצף דיווח: אחרי כל כיתה שואלים אם לעדכן כיתה נוספת
-      const g = +(await tap(call, 'הקישי את מספר השכבה: 1 לכיתה א, 2 לכיתה ב, 3 לכיתה ג, 4 לכיתה ד', 'G', { digits_allowed: ['1', '2', '3', '4'] }));
+      const g = +(await tap(call, 'הקישי את מספר השכבה: אחד לכיתה א, שתים לכיתה ב, שלוש לכיתה ג, ארבע לכיתה ד', 'G', { digits_allowed: ['1', '2', '3', '4'] }));
       const room = String(await call.read(say('הקישי את מספר הכיתה ובסיומו סולמית'), 'tap',
         { val_name: 'ROOM', min_digits: 1, max_digits: 2, sec_wait: 8, block_asterisk_key: true, amount_attempts: 3 }));
       const cls = `${GRADES[g - 1]}'${+room}`;
-      const kind = String(await tap(call, 'לדיווח על תורנית כיתה הקישי 1, על תורנית ארון הקישי 2, על תורנית יומן הקישי 3', 'K', { digits_allowed: ['1', '2', '3'] }));
+      const kind = String(await tap(call, 'לדיווח על תורנית כיתה הקישי אחד, על תורנית ארון הקישי שתים, על תורנית יומן הקישי שלוש', 'K', { digits_allowed: ['1', '2', '3'] }));
       let key, role;
       if (kind === '3') { key = 'yom'; role = ROLE_OF.yom; }
       else {
