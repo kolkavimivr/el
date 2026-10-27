@@ -11,14 +11,28 @@ const U = f => `https://api.github.com/repos/${DATA_REPO}/contents/${f}`;
 async function ghRead(f) {
   const r = await fetch(U(f), { headers: H }); if (r.status === 404) return null;
   if (!r.ok) throw new Error('GitHub ' + r.status);
-  const j = await r.json(); return { sha: j.sha, data: JSON.parse(Buffer.from(j.content, 'base64').toString('utf8')) };
+  const j = await r.json(); let text;
+  if (j.content && j.encoding === 'base64') text = Buffer.from(j.content, 'base64').toString('utf8');
+  else { // קבצים גדולים מ-1MB: ה-API לא מחזיר content, לכן קוראים את הגרסה הגולמית
+    const r2 = await fetch(U(f), { headers: { ...H, Accept: 'application/vnd.github.raw+json' } });
+    if (!r2.ok) throw new Error('GitHub raw ' + r2.status); text = await r2.text();
+  }
+  return { sha: j.sha, data: JSON.parse(text) };
 }
 async function ghWrite(f, data, sha) {
   const r = await fetch(U(f), { method: 'PUT', headers: H, body: JSON.stringify({ message: 'update ' + f, content: Buffer.from(JSON.stringify(data)).toString('base64'), sha }) });
   if (!r.ok) throw new Error('GitHub ' + r.status);
 }
 let cache = { t: 0, d: null };
-const state = async () => { if (Date.now() - cache.t > 15000) cache = { t: Date.now(), d: (await ghRead('state.json'))?.data || null }; return cache.d; };
+// כשקריאה מגיטאב נכשלת משתמשים בעותק האחרון שנשמר, כדי שהשלוחה לא תיפול
+const state = async () => {
+  if (Date.now() - cache.t > 15000) {
+    try { cache = { t: Date.now(), d: (await ghRead('state.json'))?.data || cache.d || null }; }
+    catch (e) { console.error('state read failed:', e.message); if (!cache.d) throw e; cache.t = Date.now() - 10000; }
+  }
+  return cache.d;
+};
+const stateRetry = async () => { for (let i = 0; ; i++) { try { return await state(); } catch (e) { if (i >= 2) throw e; await new Promise(r => setTimeout(r, 1500)); } } };
 
 let q = Promise.resolve();
 const locked = fn => { const r = q.then(fn); q = r.catch(() => {}); return r; };
@@ -80,7 +94,7 @@ const TQ = {
   cls_mid: ['כיתה מטואטאת?', 'טורים ישרים?'],
   cls_end: ['כיסאות מורמים?', 'שולחנות בסוף כיתה?', 'רצפה מטואטאת?', 'לוח נקי?', 'אורות ומזגנים מכובים?'],
   aron_mid: ['ארון מסודר?'],
-  aron_end: ['סידורים בארון?'],
+  aron_end: ['ארון מסודר?', 'סידורים בארון?'],
   yom: ['יומן במשרד?'],
 };
 const TNAME = { cls_mid: 'תורנית כיתה - אמצע היום', cls_end: 'תורנית כיתה - סוף היום', aron_mid: 'תורנית ארון - אמצע היום', aron_end: 'תורנית ארון - סוף היום', yom: 'תורנית יומן' };
@@ -88,15 +102,34 @@ const TNAME = { cls_mid: 'תורנית כיתה - אמצע היום', cls_end: '
 const PHASES = { mid: ['cls_mid', 'aron_mid'], end: ['cls_end', 'aron_end', 'yom'] };
 const ROLE_OF_KEY = k => (k.startsWith('cls') ? 1 : k.startsWith('aron') ? 2 : 3);
 const tap = (call, txt, name, o = {}) => call.read(say(txt), 'tap', { val_name: name, min_digits: 1, max_digits: 1, sec_wait: 8, amount_attempts: 3, ...o });
+// שיוך לפי סוג תורנות ושמירה: הכול ברקע, עם ניסיונות חוזרים
+function saveTeacher(cls, phase, res, d) {
+  const at = tsIL();
+  const job = async () => {
+    const st = await stateRetry(), cur = +st?.cfg?.curSlot || 1;
+    const rows = (st?.rows || []).filter(x => x.role >= 1 && x.role <= 3 && x.from >= 1 && x.from <= cur && cur <= x.to && st.students?.[x.id]?.cls === cls);
+    const anyBad = Object.values(res).some(r => r.v === 'bad');
+    if (!rows.length || d < 0) return updateReports(() => {}, { msg: `דיווח מורה לכיתה ${cls}: לא נמצאו תורניות משובצות להיום` });
+    return updateReports(R => {
+      for (const x of rows) for (const [key, r] of Object.entries(res)) {
+        if (x.role !== ROLE_OF_KEY(key)) continue;
+        const k = x.id + '|' + x.from, pos = (cur - x.from) * 6 + d;
+        R.rep[k] = R.rep[k] || [];
+        R.rep[k][pos] = Object.assign(R.rep[k][pos] || {}, { tch: Object.assign((R.rep[k][pos] || {}).tch || {}, { [key]: { v: r.v, a: r.a, by: cls, at } }) });
+      }
+    }, { msg: `דיווח מורה לכיתה ${cls} (${phase === 'mid' ? 'אמצע היום' : 'סוף היום'}): ${anyBad ? '⚠ יש פריט לא תקין' : 'תקין'} - ${rows.length} תורניות` });
+  };
+  job().catch(e => { console.error('teacher save failed, retrying:', e.message); setTimeout(() => job().catch(e2 => console.error('teacher save failed again:', e2.message)), 8000); });
+}
 const teacher = YemotRouter({ printLog: true });
 teacher.get('/', async call => {
   try {
     const pass = String(await call.read(say('הקישי סיסמת מורה ובסיומה סולמית'), 'tap',
       { val_name: 'PASS', min_digits: 3, max_digits: 10, sec_wait: 8, block_asterisk_key: true, amount_attempts: 3 }));
     if (pass !== TEACHER_PASS) return bye(call, 'הסיסמה שגויה');
-    const stP = state(); stP.catch(() => {}); // מחממים את הנתונים בזמן שהמורה מקישה
-    for (;;) { // רצף דיווח: אחרי כל כיתה שואלים אם לעדכן כיתה נוספת
-      const g = +(await tap(call, 'הקישי את מספר השכבה: אחת לכיתה א, שתים לכיתה ב, שלוש לכיתה ג, ארבע לכיתה ד', 'G', { digits_allowed: ['1', '2', '3', '4'] }));
+    state().catch(() => {}); // חימום הנתונים בזמן שהמורה מקישה (לא חוסם ולא מפיל את השיחה)
+    for (;;) { // רצף דיווח: אחרי כל כיתה שואלים אם לעבור לכיתה נוספת
+      const g = +(await tap(call, 'הקישי את מספר השכבה: 1 לכיתה א, 2 לכיתה ב, 3 לכיתה ג, 4 לכיתה ד', 'G', { digits_allowed: ['1', '2', '3', '4'] }));
       const room = String(await call.read(say('הקישי את מספר הכיתה ובסיומו סולמית'), 'tap',
         { val_name: 'ROOM', min_digits: 1, max_digits: 2, sec_wait: 8, block_asterisk_key: true, amount_attempts: 3 }));
       const cls = `${GRADES[g - 1]}'${+room}`;
@@ -107,23 +140,13 @@ teacher.get('/', async call => {
         for (const q of TQ[key]) ans.push(String(await tap(call, q + ' 1 כן, 2 לא', 'A', { digits_allowed: ['1', '2'] })));
         res[key] = { a: ans, v: ans.filter(a => a === '2').length > ans.length / 2 ? 'bad' : 'ok' };
       }
-      const st = await stP.then(() => state()), cur = +st?.cfg?.curSlot || 1, d = dayIL(), at = tsIL();
-      const rows = (st?.rows || []).filter(x => x.role >= 1 && x.role <= 3 && x.from >= 1 && x.from <= cur && cur <= x.to && st.students?.[x.id]?.cls === cls);
-      let note;
-      if (!rows.length || d < 0) note = 'אין תורנית משובצת לכיתה זו היום';
-      else {
-        const anyBad = Object.values(res).some(r => r.v === 'bad');
-        saveBg(R => { // שיוך לפי סוג תורנות נעשה כאן בלבד
-          for (const x of rows) for (const [key, r] of Object.entries(res)) {
-            if (x.role !== ROLE_OF_KEY(key)) continue;
-            const k = x.id + '|' + x.from, pos = (cur - x.from) * 6 + d;
-            R.rep[k] = R.rep[k] || [];
-            R.rep[k][pos] = Object.assign(R.rep[k][pos] || {}, { tch: Object.assign((R.rep[k][pos] || {}).tch || {}, { [key]: { v: r.v, a: r.a, by: cls, at } }) });
-          }
-        }, { msg: `דיווח מורה לכיתה ${cls} (${phase === 'mid' ? 'אמצע היום' : 'סוף היום'}): ${anyBad ? '⚠ יש פריט לא תקין' : 'תקין'} - ${rows.length} תורניות` });
-        note = anyBad ? 'הדיווח נקלט, סומנו פריטים לא תקינים' : 'הדיווח נקלט, תודה';
-      }
-      const more = String(await tap(call, note + '. לעדכון כיתה נוספת הקישי אחת, לסיום הקישי שתים', 'MORE', { digits_allowed: ['1', '2'] }));
+      let note = 'הדיווח נקלט, תודה';
+      try { // כל מה שאחרי השאלות הוא ברקע ולא יכול להפיל את השיחה
+        const d = dayIL(); saveTeacher(cls, phase, res, d);
+        if (d < 0) note = 'אין תורנית משובצת לכיתה זו היום';
+        else if (Object.values(res).some(r => r.v === 'bad')) note = 'הדיווח נקלט, סומנו פריטים לא תקינים';
+      } catch (e) { console.error('teacher post-step:', e); }
+      const more = String(await tap(call, note + '. למעבר לכיתה נוספת הקישי 1, לסיום הקישי 2', 'MORE', { digits_allowed: ['1', '2'] }));
       if (more !== '1') return bye(call, 'תודה, להתראות');
     }
   } catch (e) { console.error(e); return bye(call, 'אירעה שגיאה, נסי שוב מאוחר יותר'); }
