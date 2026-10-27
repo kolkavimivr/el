@@ -1,7 +1,7 @@
 import express from 'express';
 import { YemotRouter } from 'yemot-router2';
 
-const { GITHUB_TOKEN, DATA_REPO, IVR_SECRET = 'ivr', TEACHER_PASS = '12369', PORT = 3000, YEMOT_TOKEN, CRON_KEY, CALLER_ID = '', TZ_TIMEOUT = '9' } = process.env;
+const { GITHUB_TOKEN, DATA_REPO, IVR_SECRET = 'ivr', TEACHER_PASS = '12369', PORT = 3000, YEMOT_TOKEN, CRON_KEY, CALLER_ID = '', TZ_TEMPLATE = '73875' } = process.env;
 if (!GITHUB_TOKEN || !DATA_REPO) { console.error('Missing GITHUB_TOKEN or DATA_REPO'); process.exit(1); }
 if (!YEMOT_TOKEN || !CRON_KEY) console.warn('YEMOT_TOKEN or CRON_KEY missing - daily tzintuk disabled');
 
@@ -70,40 +70,58 @@ student.get('/', async call => {
 });
 
 // ---------- שלוחת מורה ----------
+// שאלות לפי סוג תורנות ושלב ביום. המפתחות נשמרים ב-tch ומוצגים בדף הניהול.
 const GRADES = ['א', 'ב', 'ג', 'ד'];
-const Q_MID = ['הרצפה נקייה? 1 כן, 2 לא', 'הטורים ישרים? 1 כן, 2 לא', 'הלוח נקי? 1 כן, 2 לא', 'האורות והמזגנים כבויים? 1 כן, 2 לא'];
-const Q_END = ['הרצפה נקייה? 1 כן, 2 לא', 'הטורים מוסטים לסוף הכיתה? 1 כן, 2 לא', 'הלוח נקי? 1 כן, 2 לא', 'האורות והמזגנים כבויים? 1 כן, 2 לא'];
+const TQ = {
+  cls_mid: ['כיתה מטואטאת?', 'טורים ישרים?'],
+  cls_end: ['כיסאות מורמים?', 'שולחנות בסוף כיתה?', 'רצפה מטואטאת?', 'לוח נקי?', 'אורות ומזגנים מכובים?'],
+  aron_mid: ['ארון מסודר?'],
+  aron_end: ['סידורים בארון?'],
+  yom: ['יומן במשרד?'],
+};
+const TNAME = { cls_mid: 'תורנית כיתה - אמצע היום', cls_end: 'תורנית כיתה - סוף היום', aron_mid: 'תורנית ארון - אמצע היום', aron_end: 'תורנית ארון - סוף היום', yom: 'תורנית יומן' };
+const ROLE_OF = { cls: 1, aron: 2, yom: 3 };
+const tap = (call, txt, name, o = {}) => call.read(say(txt), 'tap', { val_name: name, min_digits: 1, max_digits: 1, sec_wait: 8, amount_attempts: 3, ...o });
 const teacher = YemotRouter({ printLog: true });
 teacher.get('/', async call => {
   try {
     const pass = String(await call.read(say('הקישי סיסמת מורה ובסיומה סולמית'), 'tap',
       { val_name: 'PASS', min_digits: 3, max_digits: 10, sec_wait: 8, block_asterisk_key: true, amount_attempts: 3 }));
     if (pass !== TEACHER_PASS) return bye(call, 'הסיסמה שגויה');
-    const g = +(await call.read(say('הקישי את מספר השכבה: 1 לכיתה א, 2 לכיתה ב, 3 לכיתה ג, 4 לכיתה ד'), 'tap',
-      { val_name: 'G', min_digits: 1, max_digits: 1, sec_wait: 8, digits_allowed: ['1', '2', '3', '4'], amount_attempts: 3 }));
-    const room = String(await call.read(say('הקישי את מספר הכיתה ובסיומו סולמית'), 'tap',
-      { val_name: 'ROOM', min_digits: 1, max_digits: 2, sec_wait: 8, block_asterisk_key: true, amount_attempts: 3 }));
-    const cls = `${GRADES[g - 1]}'${+room}`;
-    const phase = await call.read(say('להזנת דיווח מהלך היום הקישי 1, לדיווח סוף היום הקישי 2'), 'tap',
-      { val_name: 'PH', min_digits: 1, max_digits: 1, sec_wait: 8, digits_allowed: ['1', '2'], amount_attempts: 3 });
-    const ph = phase === '1' ? 'mid' : 'end', qs = ph === 'mid' ? Q_MID : Q_END;
-    const ans = [];
-    for (const q of qs) ans.push(String(await call.read(say(q), 'tap',
-      { val_name: 'A', min_digits: 1, max_digits: 1, sec_wait: 8, digits_allowed: ['1', '2'], amount_attempts: 3 })));
-    const no = ans.filter(a => a === '2').length, bad = no > ans.length / 2 ? 'bad' : 'ok';
-    const st = await state(), cur = +st?.cfg?.curSlot || 1, d = dayIL();
-    const who = (st?.rows || []).filter(x => x.role !== 4 && x.from >= 1 && x.from <= cur && cur <= x.to && st.students?.[x.id]?.cls === cls);
-    if (!who.length || d < 0) return bye(call, 'אין תורנית משובצת לכיתה זו היום');
-    await updateReports(R => {
-      for (const x of who) { const k = x.id + '|' + x.from, pos = (cur - x.from) * 6 + d;
-        R.rep[k] = R.rep[k] || []; R.rep[k][pos] = Object.assign(R.rep[k][pos] || {}, { tch: Object.assign((R.rep[k][pos] || {}).tch || {}, { [ph]: { v: bad, a: ans, by: cls, at: tsIL() } }) }); }
-    }, { msg: `דיווח מורה לכיתה ${cls} (${ph === 'mid' ? 'מהלך היום' : 'סוף היום'}): ${bad === 'bad' ? '⚠ הרוב לא תקין' : 'תקין'} - ${who.map(x => st.students[x.id].name).join(', ')}` });
-    return bye(call, bad === 'bad' ? 'הדיווח נקלט, סומן כלא תקין' : 'הדיווח נקלט, תודה');
+    let note = '';
+    for (;;) { // רצף דיווח: אחרי כל כיתה שואלים אם לעדכן כיתה נוספת
+      const g = +(await tap(call, 'הקישי את מספר השכבה: 1 לכיתה א, 2 לכיתה ב, 3 לכיתה ג, 4 לכיתה ד', 'G', { digits_allowed: ['1', '2', '3', '4'] }));
+      const room = String(await call.read(say('הקישי את מספר הכיתה ובסיומו סולמית'), 'tap',
+        { val_name: 'ROOM', min_digits: 1, max_digits: 2, sec_wait: 8, block_asterisk_key: true, amount_attempts: 3 }));
+      const cls = `${GRADES[g - 1]}'${+room}`;
+      const kind = String(await tap(call, 'לדיווח על תורנית כיתה הקישי 1, על תורנית ארון הקישי 2, על תורנית יומן הקישי 3', 'K', { digits_allowed: ['1', '2', '3'] }));
+      let key, role;
+      if (kind === '3') { key = 'yom'; role = ROLE_OF.yom; }
+      else {
+        const ph = await tap(call, 'לדיווח אמצע היום הקישי 1, לדיווח סוף היום הקישי 2', 'PH', { digits_allowed: ['1', '2'] });
+        const base = kind === '1' ? 'cls' : 'aron'; role = ROLE_OF[base]; key = base + (String(ph) === '1' ? '_mid' : '_end');
+      }
+      const ans = [];
+      for (const q of TQ[key]) ans.push(String(await tap(call, q + ' 1 כן, 2 לא', 'A', { digits_allowed: ['1', '2'] })));
+      const no = ans.filter(a => a === '2').length, bad = no > ans.length / 2 ? 'bad' : 'ok';
+      const st = await state(), cur = +st?.cfg?.curSlot || 1, d = dayIL();
+      const who = (st?.rows || []).filter(x => x.role === role && x.from >= 1 && x.from <= cur && cur <= x.to && st.students?.[x.id]?.cls === cls);
+      if (!who.length || d < 0) note = 'אין תורנית משובצת לכיתה זו היום';
+      else {
+        await updateReports(R => {
+          for (const x of who) { const k = x.id + '|' + x.from, pos = (cur - x.from) * 6 + d;
+            R.rep[k] = R.rep[k] || []; R.rep[k][pos] = Object.assign(R.rep[k][pos] || {}, { tch: Object.assign((R.rep[k][pos] || {}).tch || {}, { [key]: { v: bad, a: ans, by: cls, at: tsIL() } }) }); }
+        }, { msg: `דיווח מורה לכיתה ${cls} (${TNAME[key]}): ${bad === 'bad' ? '⚠ הרוב לא תקין' : 'תקין'} - ${who.map(x => st.students[x.id].name).join(', ')}` });
+        note = bad === 'bad' ? 'הדיווח נקלט, סומן כלא תקין' : 'הדיווח נקלט';
+      }
+      const more = String(await tap(call, note + '. לעדכון כיתה נוספת הקישי 1, לסיום הקישי 2', 'MORE', { digits_allowed: ['1', '2'] }));
+      if (more !== '1') return bye(call, 'תודה, להתראות');
+    }
   } catch (e) { console.error(e); return bye(call, 'אירעה שגיאה, נסי שוב מאוחר יותר'); }
 });
 
 
-// ---------- צינתוק יומי לתורניות (בתשלום, RunTzintuk) ----------
+// ---------- צינתוק יומי לתורניות (בתשלום, קמפיין פעמון - RunCampaign) ----------
 // נקרא כל כמה דקות מ-cron חיצוני (למשל cron-job.org). שולח פעם ביום, החל משעת ההגדרה.
 const hhmmIL = () => new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Asia/Jerusalem' }).format(new Date());
 const dateIL = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jerusalem' }).format(new Date());
@@ -117,14 +135,14 @@ async function sendTzDaily(force) {
   if (!force && R.tzDate === today) return { skipped: 'already sent today' };
   const cur = +st?.cfg?.curSlot || 1;
   const phones = [...new Set((st?.rows || []).filter(x => x.role !== 4 && x.from >= 1 && x.from <= cur && cur <= x.to)
-    .map(x => st.students?.[x.id]?.phone).filter(p => p && p.length >= 9))];
+    .map(x => String(st.students?.[x.id]?.phone || '').replace(/\D/g, '')).filter(p => /^0\d{8,9}$/.test(p)))];
   if (!phones.length) { await updateReports(R2 => { R2.tzDate = today; }, { msg: 'צינתוק יומי: אין נמענות לשבוע זה' }); return { sent: 0 }; }
-  const url = 'https://www.call2all.co.il/ym/api/RunTzintuk?token=' + encodeURIComponent(YEMOT_TOKEN) +
-    '&callerId=' + encodeURIComponent(CALLER_ID) + '&TzintukTimeOut=' + encodeURIComponent(TZ_TIMEOUT) + '&phones=' + phones.join(':');
+  const tpl = String(tz.tpl || TZ_TEMPLATE);
+  const url = 'https://www.call2all.co.il/ym/api/RunCampaign?' + new URLSearchParams({ token: YEMOT_TOKEN, templateId: tpl, phones: phones.join(':'), ...(CALLER_ID ? { callerId: CALLER_ID } : {}) });
   const r = await fetch(url); const j = await r.json().catch(() => ({}));
-  const ok = j.responseStatus === 'OK';
-  await updateReports(R2 => { R2.tzDate = today; }, { msg: `צינתוק יומי ל-${phones.length} נמענות: ${ok ? 'נשלח' : 'שגיאה ' + (j.message || j.responseStatus || r.status)}` });
-  return { sent: phones.length, ok };
+  const ok = j.responseStatus === 'OK' || !!j.campaignId;
+  await updateReports(R2 => { R2.tzDate = today; }, { msg: `צינתוק יומי (קמפיין ${tpl}) ל-${phones.length} נמענות: ${ok ? 'נשלח, בהמתנה לחיוג ' + (j.pending ?? phones.length) : 'שגיאה ' + (j.message || j.messageCode || j.responseStatus || r.status)}` });
+  return { sent: phones.length, ok, campaignId: j.campaignId, pending: j.pending, blocked: j.blocked, estimatedPrice: j.estimatedPrice };
 }
 app.get('/tz/run', async (req, res) => {
   if (!CRON_KEY || req.query.key !== CRON_KEY) return res.status(401).send('unauthorized');
