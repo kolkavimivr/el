@@ -60,7 +60,11 @@ app.get('/', (_, res) => res.send('tornuyot server is running'));
 const saveBg = (mutate, msg) => updateReports(mutate, msg).catch(e => {
   console.error('save failed, retrying:', e.message); setTimeout(() => updateReports(mutate, msg).catch(e2 => console.error('save failed again:', e2.message)), 5000);
 });
-const say = t => [{ type: 'text', data: t }];
+// לפי תיעוד ימות המשיח אסור להכניס בטקסט הודעה את התווים נקודה (.) וקו מפריד (-): הם שוברים את התשובה והשיחה נותקת
+const say = t => [{ type: 'text', data: String(t).replace(/[.\-]+/g, ' ').replace(/\s+/g, ' ').trim() }];
+// ניתוק של המתקשרת הוא לא שגיאה: לא מדפיסים את כל אובייקט השיחה ולא מנסים להשמיע הודעה
+const quiet = e => /hangup|exit/i.test(String(e?.name) + ' ' + String(e?.message));
+const onErr = (call, e, tag) => { console.error('[' + tag + ']', e?.name || '', e?.message || e); return quiet(e) ? undefined : bye(call, 'אירעה שגיאה, נסי שוב מאוחר יותר'); };
 const bye = (call, m) => { call.id_list_message(say(m), { prependToNextAction: true }); return call.hangup(); };
 
 // ---------- שלוחת תלמידה ----------
@@ -84,7 +88,7 @@ student.get('/', async call => {
     saveBg(R => { R.rep[k] = R.rep[k] || []; R.rep[k][pos] = Object.assign(R.rep[k][pos] || {}, { stu: val }); },
       { id, msg: 'דיווח תלמידה (טלפון) ליום ' + 'אבגדהו'[d] + ': ' + SLABEL[val] });
     return bye(call, 'הדיווח נקלט, תודה');
-  } catch (e) { console.error(e); return bye(call, 'אירעה שגיאה, נסי שוב מאוחר יותר'); }
+  } catch (e) { return onErr(call, e, 'student'); }
 });
 
 // ---------- שלוחת מורה ----------
@@ -146,10 +150,10 @@ teacher.get('/', async call => {
         if (d < 0) note = 'אין תורנית משובצת לכיתה זו היום';
         else if (Object.values(res).some(r => r.v === 'bad')) note = 'הדיווח נקלט, סומנו פריטים לא תקינים';
       } catch (e) { console.error('teacher post-step:', e); }
-      const more = String(await tap(call, note + '. למעבר לכיתה נוספת הקישי 1, לסיום הקישי 2', 'MORE', { digits_allowed: ['1', '2'] }));
+      const more = String(await tap(call, note + ' למעבר לכיתה נוספת הקישי 1, לסיום הקישי 2', 'MORE', { digits_allowed: ['1', '2'] }));
       if (more !== '1') return bye(call, 'תודה, להתראות');
     }
-  } catch (e) { console.error(e); return bye(call, 'אירעה שגיאה, נסי שוב מאוחר יותר'); }
+  } catch (e) { return onErr(call, e, 'teacher'); }
 });
 
 
