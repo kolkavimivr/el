@@ -37,6 +37,17 @@ const stateRetry = async () => { for (let i = 0; ; i++) { try { return await sta
 let q = Promise.resolve();
 const locked = fn => { const r = q.then(fn); q = r.catch(() => {}); return r; };
 const dayIL = () => ({ Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5 })[new Intl.DateTimeFormat('en-US', { weekday: 'short', timeZone: 'Asia/Jerusalem' }).format(new Date())] ?? -1;
+// השבוע הנוכחי מחושב מהתאריך העברי של יום ראשון האחרון (כמו בדף). הערך השמור בקובץ משמש רק כשנבחר שבוע ידני.
+const HEB_SLOTS = [[2, 7], [2, 14], [2, 21], [2, 28], [3, 5], [3, 12], [3, 19], [4, 3], [4, 10], [4, 17], [4, 24]];
+const HEB_MONTH = { Tishri: 1, Heshvan: 2, Kislev: 3, Tevet: 4, Shevat: 5, Adar: 6, 'Adar I': 6, 'Adar II': 7, Nisan: 8, Iyar: 9, Sivan: 10, Tamuz: 11, Tammuz: 11, Av: 12, Elul: 13 };
+function autoWeek() {
+  const now = new Date(), wd = new Intl.DateTimeFormat('en-US', { weekday: 'short', timeZone: 'Asia/Jerusalem' }).format(now);
+  const idx = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 }[wd] ?? 0, sun = new Date(now.getTime() - idx * 86400000);
+  const p = new Intl.DateTimeFormat('en-u-ca-hebrew', { day: 'numeric', month: 'long', timeZone: 'Asia/Jerusalem' }).formatToParts(sun);
+  const key = (HEB_MONTH[p.find(x => x.type === 'month').value] || 1) * 100 + +p.find(x => x.type === 'day').value;
+  let w = 1; HEB_SLOTS.forEach(([m, d], i) => { if (key >= m * 100 + d) w = i + 1; }); return w;
+}
+const curWeek = st => (st?.cfg?.manualWeek ? (+st.cfg.curSlot || 1) : autoWeek());
 const tsIL = () => new Date().toLocaleString('he-IL', { timeZone: 'Asia/Jerusalem' });
 
 // עדכון reports.json בנעילה עם ניסיון חוזר
@@ -76,7 +87,7 @@ student.get('/', async call => {
     let id = await call.read(say('אנא הקישי את מספר תעודת הזהות שלך, ובסיומו סולמית'), 'tap',
       { val_name: 'ID', min_digits: 5, max_digits: 9, sec_wait: 8, block_asterisk_key: true, amount_attempts: 3 });
     id = String(id).padStart(9, '0');
-    const st = await state(), cur = +st?.cfg?.curSlot || 1, d = dayIL();
+    const st = await state(), cur = curWeek(st), d = dayIL();
     const row = st?.rows?.find(x => x.id === id && x.role !== 4 && x.from >= 1 && x.from <= cur && cur <= x.to);
     if (!row || d < 0) {
       if (st?.students?.[id]) saveBg(R => {}, { id, msg: 'דיווח טלפוני נדחה - לא משובצת בתקופה זו' });
@@ -110,7 +121,7 @@ const tap = (call, txt, name, o = {}) => call.read(say(txt), 'tap', { val_name: 
 function saveTeacher(cls, phase, res, d) {
   const at = tsIL();
   const job = async () => {
-    const st = await stateRetry(), cur = +st?.cfg?.curSlot || 1;
+    const st = await stateRetry(), cur = curWeek(st);
     const rows = (st?.rows || []).filter(x => x.role >= 1 && x.role <= 3 && x.from >= 1 && x.from <= cur && cur <= x.to && st.students?.[x.id]?.cls === cls);
     const anyBad = Object.values(res).some(r => r.v === 'bad');
     if (!rows.length || d < 0) return updateReports(() => {}, { msg: `דיווח מורה לכיתה ${cls}: לא נמצאו תורניות משובצות להיום` });
@@ -157,35 +168,54 @@ teacher.get('/', async call => {
 });
 
 
-// ---------- צינתוק יומי לתורניות (בתשלום, קמפיין פעמון - RunCampaign) ----------
-// נקרא כל כמה דקות מ-cron חיצוני (למשל cron-job.org). שולח פעם ביום, החל משעת ההגדרה.
-const hhmmIL = () => new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Asia/Jerusalem' }).format(new Date());
+// ---------- צינתוק יומי אוטומטי לתורניות (בתשלום, קמפיין פעמון - RunCampaign) ----------
+// ברירת מחדל: פעיל, בשעה 14:30, בכל יום פעילות (א-ו). נשלח פעם אחת ביום לכל התורניות המשובצות לשבוע הנוכחי, בלי התערבות ידנית.
+// ההפעלה: (1) מתזמן פנימי שבודק כל 30 שניות כשהשרת ער, (2) /tz/tick שנקרא מבחוץ (GitHub Actions) ומעיר את השרת ב-Render החינמי.
+const hhmmIL = () => new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit', hourCycle: 'h23', timeZone: 'Asia/Jerusalem' }).format(new Date());
 const dateIL = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jerusalem' }).format(new Date());
+let tzBusy = false;
 async function sendTzDaily(force) {
-  const st = await state(), tz = st?.cfg?.tz || {};
-  if (!force && !tz.on) return { skipped: 'off' };
-  if (!force && dayIL() < 0) return { skipped: 'shabbat' };
-  const now = hhmmIL(), today = dateIL();
-  if (!force && now < (tz.time || '07:30')) return { skipped: 'not yet', now };
-  const R = (await ghRead('reports.json'))?.data || { rep: {}, log: [] };
-  if (!force && R.tzDate === today) return { skipped: 'already sent today' };
-  const cur = +st?.cfg?.curSlot || 1;
-  const phones = [...new Set((st?.rows || []).filter(x => x.role !== 4 && x.from >= 1 && x.from <= cur && cur <= x.to)
-    .map(x => String(st.students?.[x.id]?.phone || '').replace(/\D/g, '')).filter(p => /^0\d{8,9}$/.test(p)))];
-  if (!phones.length) { await updateReports(R2 => { R2.tzDate = today; }, { msg: 'צינתוק יומי: אין נמענות לשבוע זה' }); return { sent: 0 }; }
-  const tpl = String(tz.tpl || TZ_TEMPLATE);
-  const url = 'https://www.call2all.co.il/ym/api/RunCampaign?' + new URLSearchParams({ token: YEMOT_TOKEN, templateId: tpl, phones: phones.join(':'), ...(CALLER_ID ? { callerId: CALLER_ID } : {}) });
-  const r = await fetch(url); const j = await r.json().catch(() => ({}));
-  const ok = j.responseStatus === 'OK' || !!j.campaignId;
-  await updateReports(R2 => { R2.tzDate = today; }, { msg: `צינתוק יומי (קמפיין ${tpl}) ל-${phones.length} נמענות: ${ok ? 'נשלח, בהמתנה לחיוג ' + (j.pending ?? phones.length) : 'שגיאה ' + (j.message || j.messageCode || j.responseStatus || r.status)}` });
-  return { sent: phones.length, ok, campaignId: j.campaignId, pending: j.pending, blocked: j.blocked, estimatedPrice: j.estimatedPrice };
+  if (tzBusy) return { skipped: 'busy' };
+  tzBusy = true;
+  try {
+    const st = await stateRetry(), tz = { on: true, time: '14:30', ...(st?.cfg?.tz || {}) };
+    if (!force && tz.on === false) return { skipped: 'off' };
+    if (!force && dayIL() < 0) return { skipped: 'shabbat' };
+    const now = hhmmIL(), today = dateIL();
+    if (!force && now < tz.time) return { skipped: 'not yet', now, time: tz.time };
+    const R = (await ghRead('reports.json'))?.data || { rep: {}, log: [] };
+    if (!force && R.tzDate === today) {
+      if (R.tzOk) return { skipped: 'already sent today' };
+      if ((R.tzTry || 0) >= 3) return { skipped: 'gave up after 3 failed tries' };
+      if (Date.now() - (R.tzAt || 0) < 5 * 60000) return { skipped: 'waiting before retry' };
+    }
+    const cur = curWeek(st);
+    const phones = [...new Set((st?.rows || []).filter(x => x.role >= 1 && x.role <= 3 && x.from >= 1 && x.from <= cur && cur <= x.to)
+      .map(x => String(st.students?.[x.id]?.phone || '').replace(/\D/g, '')).filter(p => /^0\d{8,9}$/.test(p)))];
+    const tpl = String(tz.tpl || TZ_TEMPLATE);
+    let ok = false, j = {}, err = '';
+    if (!phones.length) { ok = true; err = 'אין נמענות לשבוע ' + cur; }
+    else {
+      try {
+        const url = 'https://www.call2all.co.il/ym/api/RunCampaign?' + new URLSearchParams({ token: YEMOT_TOKEN, templateId: tpl, phones: phones.join(':'), ...(CALLER_ID ? { callerId: CALLER_ID } : {}) });
+        const r = await fetch(url); j = await r.json().catch(() => ({}));
+        ok = j.responseStatus === 'OK' || !!j.campaignId; if (!ok) err = j.message || j.messageCode || j.responseStatus || r.status;
+      } catch (e) { err = e.message; }
+    }
+    await updateReports(R2 => { R2.tzTry = (R2.tzDate === today ? (R2.tzTry || 0) : 0) + 1; R2.tzDate = today; R2.tzOk = ok; R2.tzAt = Date.now(); },
+      { msg: `צינתוק יומי אוטומטי (קמפיין ${tpl}, שבוע ${cur}) ל-${phones.length} נמענות: ${ok ? (phones.length ? 'נשלח, בהמתנה לחיוג ' + (j.pending ?? phones.length) : err) : 'שגיאה ' + err}` });
+    return { sent: phones.length, week: cur, ok, error: err || undefined, campaignId: j.campaignId, pending: j.pending, blocked: j.blocked, estimatedPrice: j.estimatedPrice };
+  } finally { tzBusy = false; }
 }
-app.get('/tz/run', async (req, res) => {
+const tzTick = () => { if (!YEMOT_TOKEN) return; sendTzDaily(false).then(r => { if (r && r.sent !== undefined) console.log('[tz]', JSON.stringify(r)); }).catch(e => console.error('[tz] tick failed:', e.message)); };
+app.get('/tz/tick', (_, res) => { tzTick(); res.json({ ok: true, now: hhmmIL() }); });          // ללא מפתח: בטוח, כי שולח רק בשעה המוגדרת ופעם ביום
+app.get('/tz/run', async (req, res) => {                                                          // ידני/בדיקה (דורש מפתח); force=1 שולח מיד
   if (!CRON_KEY || req.query.key !== CRON_KEY) return res.status(401).send('unauthorized');
   if (!YEMOT_TOKEN) return res.status(500).json({ error: 'YEMOT_TOKEN missing' });
   try { res.json(await sendTzDaily(req.query.force === '1')); }
   catch (e) { console.error(e); res.status(500).json({ error: e.message }); }
 });
+if (YEMOT_TOKEN) { setInterval(tzTick, 30000); setTimeout(tzTick, 20000); }                     // מתזמן פנימי + השלמה מיד אחרי שהשרת מתעורר
 
 app.use('/ivr/' + IVR_SECRET + '/teacher', teacher);
 app.use('/ivr/' + IVR_SECRET, student);
