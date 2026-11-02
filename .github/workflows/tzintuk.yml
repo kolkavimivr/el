@@ -1,0 +1,13 @@
+# מקום בריפו: .github/workflows/tzintuk.yml
+# מעיר את השרת ב-Render (החינמי נרדם) ומפעיל את בדיקת הצינתוק היומי. השרת עצמו מחליט אם הגיעה השעה (14:30), אם היום יום פעילות, ואם כבר נשלח היום.
+name: tzintuk-tick
+on:
+  schedule:
+    - cron: '*/10 11-13 * * 0-5'   # שעון UTC, ימים א-ו. מכסה 14:30 בישראל גם בשעון קיץ (UTC+3) וגם בשעון חורף (UTC+2)
+  workflow_dispatch:                # אפשר גם להריץ ידנית מהלשונית Actions
+jobs:
+  tick:
+    runs-on: ubuntu-latest
+    steps:
+      - name: wake the server and run the daily tzintuk check
+        run: curl -fsS --retry 8 --retry-delay 20 --retry-all-errors --max-time 120 "https://el-tornuyot.onrender.com/tz/tick"
